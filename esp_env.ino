@@ -1,25 +1,42 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <WiFi.h>
-#include <ArduinoOTA.h>
+//#include <WiFi.h>
+//#include <ArduinoOTA.h>
 #include "util.h"
 
 //ライブラリマネージャからインストール
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "bsec.h"
+#include <NimBLEDevice.h>
 
 //手動インストール必須
-#include <AsyncTCP.h>//https://github.com/me-no-dev/AsyncTCP
-#include <ESPAsyncWebServer.h>//https://github.com/me-no-dev/ESPAsyncWebServer
+//#include <AsyncTCP.h>//https://github.com/me-no-dev/AsyncTCP
+//#include <ESPAsyncWebServer.h>//https://github.com/me-no-dev/ESPAsyncWebServer
 
 /////グローバル
-struct vec2{uint8_t x;uint8_t y;};
+//struct vec2{uint8_t x;uint8_t y;};
 
 Bsec iaqSensor;
 Adafruit_SSD1306 display(128,64,&Wire,-1);//width,height
-vec2 o;
+//vec2 o;
 String s;
+
+static NimBLEUUID CTSserviceUUID("1805");
+static NimBLEUUID CTScharUUID("2A2B");
+class CliCB: public NimBLEClientCallbacks{
+    void onConnect(NimBLEClient* cli){
+      std::string val=cli->getValue(CTSserviceUUID,CTScharUUID);
+      if(val.length()>0)Serial.printf("Connected: %x\n",val);
+      else Serial.printf(":(\n");
+      cli->disconnect();
+    };
+    void onDisconnect(NimBLEClient* pCli){Serial.printf("discon\n");};
+};
+class ScanCB: public NimBLEAdvertisedDeviceCallbacks {
+  void onResult(NimBLEAdvertisedDevice* advertisedDevice){Serial.printf("Advertised Device: %s \n", advertisedDevice->toString().c_str());}
+};
+
 
 void iaqerr(){
 	if(iaqSensor.status!=BSEC_OK){display.printf(iaqSensor.status<BSEC_OK?"BSEC err[%d]\n":"BSEC warn[%d]\n",iaqSensor.status);display.display();delay(5000);}
@@ -82,13 +99,34 @@ void setup(){
 	iaqSensor.updateSubscription(sensorList,6,BSEC_SAMPLE_RATE_LP);iaqerr();//リスト登録 モード設定
 	display.printf(" OK.\n");display.display();delay(200);
 
+	//BLE時刻取得? CTS
+	//TODO: とりあえず動かす よくわかっていない
+  NimBLEDevice::setScanDuplicateCacheSize(200);
+  //NimBLEDevice::setSecurityAuth(true,true,true);
+  NimBLEDevice::init("ESP_Clock");
+  NimBLEScan* pBLEScan=NimBLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new ScanCB());
+  pBLEScan->setActiveScan(true);
+  pBLEScan->setInterval(50);
+  pBLEScan->setFilterPolicy(BLE_HCI_SCAN_FILT_NO_WL);
+  pBLEScan->setWindow(15);
+  display.printf("scan");display.display();
+  NimBLEScanResults scres=pBLEScan->start(10);
+  display.printf(" done\n");display.display();
+  for(uint8_t i=0;i<scres.getCount();i++){
+		Serial.printf("%u / %u\n",i,scres.getCount());
+    NimBLEClient* cli=NimBLEDevice::createClient();
+    cli->setClientCallbacks(new CliCB());
+    cli->connect(scres.getDevice(i).getAddress());
+  }
+
 	//display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
 	//display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
 	display.printf("Done!\n");display.display();
 	delay(500);
 }
 void loop(){
-	ArduinoOTA.handle();
+	//ArduinoOTA.handle();
 
 	if(iaqSensor.run()){//新規データがあったら更新 クソコードに見えるが一度に取得すると処理落ちする
 		s="{\ntemp: "+String(iaqSensor.temperature);
