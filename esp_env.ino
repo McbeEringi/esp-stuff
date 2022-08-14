@@ -8,7 +8,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "bsec.h"
-#include <NimBLEDevice.h>
+//#include <NimBLEDevice.h>
 
 //手動インストール必須
 //#include <AsyncTCP.h>//https://github.com/me-no-dev/AsyncTCP
@@ -101,24 +101,24 @@ void setup(){
 
 	//BLE時刻取得? CTS
 	//TODO: とりあえず動かす よくわかっていない
-  NimBLEDevice::setScanDuplicateCacheSize(200);
-  //NimBLEDevice::setSecurityAuth(true,true,true);
-  NimBLEDevice::init("ESP_Clock");
-  NimBLEScan* pBLEScan=NimBLEDevice::getScan();
-  pBLEScan->setAdvertisedDeviceCallbacks(new ScanCB());
-  pBLEScan->setActiveScan(true);
-  pBLEScan->setInterval(50);
-  pBLEScan->setFilterPolicy(BLE_HCI_SCAN_FILT_NO_WL);
-  pBLEScan->setWindow(15);
-  display.printf("scan");display.display();
-  NimBLEScanResults scres=pBLEScan->start(10);
-  display.printf(" done\n");display.display();
-  for(uint8_t i=0;i<scres.getCount();i++){
-		Serial.printf("%u / %u\n",i,scres.getCount());
-    NimBLEClient* cli=NimBLEDevice::createClient();
-    cli->setClientCallbacks(new CliCB());
-    cli->connect(scres.getDevice(i).getAddress());
-  }
+  // NimBLEDevice::setScanDuplicateCacheSize(200);
+  // //NimBLEDevice::setSecurityAuth(true,true,true);
+  // NimBLEDevice::init("ESP_Clock");
+  // NimBLEScan* pBLEScan=NimBLEDevice::getScan();
+  // pBLEScan->setAdvertisedDeviceCallbacks(new ScanCB());
+  // pBLEScan->setActiveScan(true);
+  // pBLEScan->setInterval(50);
+  // pBLEScan->setFilterPolicy(BLE_HCI_SCAN_FILT_NO_WL);
+  // pBLEScan->setWindow(15);
+  // display.printf("scan");display.display();
+  // NimBLEScanResults scres=pBLEScan->start(10);
+  // display.printf(" done\n");display.display();
+  // for(uint8_t i=0;i<scres.getCount();i++){
+	// 	Serial.printf("%u / %u\n",i,scres.getCount());
+  //   NimBLEClient* cli=NimBLEDevice::createClient();
+  //   cli->setClientCallbacks(new CliCB());
+  //   cli->connect(scres.getDevice(i).getAddress());
+  // }
 
 	//display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
 	//display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
