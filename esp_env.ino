@@ -8,7 +8,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "bsec.h"
-//#include <NimBLEDevice.h>
+#include <NimBLEDevice.h>
 
 //手動インストール必須
 //#include <AsyncTCP.h>//https://github.com/me-no-dev/AsyncTCP
@@ -21,20 +21,23 @@ Bsec iaqSensor;
 Adafruit_SSD1306 display(128,64,&Wire,-1);//width,height
 //vec2 o;
 String s;
+NimBLEAddress *addr;
 
 static NimBLEUUID CTSserviceUUID("1805");
-static NimBLEUUID CTScharUUID("2A2B");
-class CliCB: public NimBLEClientCallbacks{
-    void onConnect(NimBLEClient* cli){
-      std::string val=cli->getValue(CTSserviceUUID,CTScharUUID);
-      if(val.length()>0)Serial.printf("Connected: %x\n",val);
-      else Serial.printf(":(\n");
-      cli->disconnect();
-    };
-    void onDisconnect(NimBLEClient* pCli){Serial.printf("discon\n");};
+static NimBLEUUID CTScharUUID("2a2b");
+static NimBLEUUID BATTserviceUUID("180f");
+static NimBLEUUID BATTcharUUID("2a19");
+class svrCB: public NimBLEServerCallbacks{
+	void onConnect(NimBLEServer *svr){
+		addr=new NimBLEAddress(svr->getPeerInfo(0).getAddress());
+		Serial.printf("svr con: %s\n", addr->toString().c_str());
+		//svr->getAdvertising()->stop();
+	};
+	void onDisconnect(NimBLEServer *svr){Serial.printf("svr discon\n");};
 };
-class ScanCB: public NimBLEAdvertisedDeviceCallbacks {
-  void onResult(NimBLEAdvertisedDevice* advertisedDevice){Serial.printf("Advertised Device: %s \n", advertisedDevice->toString().c_str());}
+class cliCB: public NimBLEClientCallbacks{
+	void onConnect(NimBLEClient *cli){Serial.printf("cli con\n");};
+	void onDisconnect(NimBLEClient *cli){Serial.printf("cli discon\n");};
 };
 
 
@@ -74,17 +77,6 @@ void setup(){
 	display.setCursor(0,0);//カーソル原点移動
 	display.printf("Loading...\n\n");display.display();delay(200);
 
-	/////無線アップデート起動
-	// display.printf("OTA");display.display();
-	// ArduinoOTA
-	// 	.setPassword("SAZANKA")
-	// 	.onStart([](){display.clearDisplay();display.setCursor(0,0);display.printf("OTA update started.\n");display.display();})
-	// 	.onEnd([](){display.printf("Done!");display.display();})
-	// 	.onProgress([](unsigned int progress, unsigned int total){display.clearDisplay();display.setCursor(0,0);display.printf("Updating %s...\n%u/%u\n%5.1f%%\n",ArduinoOTA.getCommand()==U_FLASH?"FLASH":"SPIFFS",progress,total,float(progress)/float(total)*100.);display.display();})
-	// 	.onError([](ota_error_t err){display.printf("Err[%u]",err);display.display();delay(5000);})
-	// 	.begin();
-	// display.printf(" OK.\n");display.display();delay(200);
-
 	/////センサ起動
 	display.printf("Sensor");display.display();
 	iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);iaqerr();//センサ起動 エラーチェック
@@ -99,26 +91,36 @@ void setup(){
 	iaqSensor.updateSubscription(sensorList,6,BSEC_SAMPLE_RATE_LP);iaqerr();//リスト登録 モード設定
 	display.printf(" OK.\n");display.display();delay(200);
 
-	//BLE時刻取得? CTS
-	//TODO: とりあえず動かす よくわかっていない
-  // NimBLEDevice::setScanDuplicateCacheSize(200);
-  // //NimBLEDevice::setSecurityAuth(true,true,true);
-  // NimBLEDevice::init("ESP_Clock");
-  // NimBLEScan* pBLEScan=NimBLEDevice::getScan();
-  // pBLEScan->setAdvertisedDeviceCallbacks(new ScanCB());
-  // pBLEScan->setActiveScan(true);
-  // pBLEScan->setInterval(50);
-  // pBLEScan->setFilterPolicy(BLE_HCI_SCAN_FILT_NO_WL);
-  // pBLEScan->setWindow(15);
-  // display.printf("scan");display.display();
-  // NimBLEScanResults scres=pBLEScan->start(10);
-  // display.printf(" done\n");display.display();
-  // for(uint8_t i=0;i<scres.getCount();i++){
-	// 	Serial.printf("%u / %u\n",i,scres.getCount());
-  //   NimBLEClient* cli=NimBLEDevice::createClient();
-  //   cli->setClientCallbacks(new CliCB());
-  //   cli->connect(scres.getDevice(i).getAddress());
-  // }
+	//BLE時刻取得 CTS
+	NimBLEDevice::init("ESP_Clock");
+	NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_SC);
+	//NimBLEDevice::setScanDuplicateCacheSize(200);
+	//NimBLEDevice::setSecurityAuth(true,true,true);
+	NimBLEServer *svr=NimBLEDevice::createServer(); 
+	NimBLEClient *cli=NimBLEDevice::createClient(); 
+	NimBLEAdvertising *adv=svr->getAdvertising();
+	svr->setCallbacks(new svrCB());
+	cli->setClientCallbacks(new cliCB());
+	NimBLEService* battsrv = svr->createService(BATTserviceUUID);
+  NimBLECharacteristic* battchar = battsrv->createCharacteristic(BATTcharUUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
+	battchar->setValue(10);
+	battsrv->start();
+	adv->addServiceUUID("1812");
+	adv->addServiceUUID("180f");
+	adv->start();
+	while(addr==NULL)delay(100);
+	cli->connect(*addr);
+
+	while(true){
+		std::string val=cli->getValue(CTSserviceUUID,CTScharUUID);
+		Serial.printf("CTS val: { length: %d, val: %s }\n",val.length(),val.c_str());
+		if(val.length()==10){
+			Serial.printf("%d-%02d-%02d %02d:%02d:%02d.%03d %d x%02x\n", val[1] << 8 | val[0], val[2], val[3], val[4], val[5], val[6], val[8]*1000/256, val[7], val[9]);
+			break;
+		}
+		delay(1000);
+	}
+
 
 	//display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
 	//display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
