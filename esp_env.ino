@@ -20,6 +20,7 @@ Bsec iaqSensor;
 Adafruit_SSD1306 display(128,64,&Wire,-1);//width,height
 //vec2 o;
 String s;
+float contrast=1.;
 
 NimBLEAddress *addr;
 static NimBLEUUID CTSserviceUUID("1805");
@@ -43,6 +44,7 @@ void iaqerr(){
 	if(iaqSensor.status!=BSEC_OK){display.printf(iaqSensor.status<BSEC_OK?"BSEC err[%d]\n":"BSEC warn[%d]\n",iaqSensor.status);display.display();delay(5000);}
 	if(iaqSensor.bme680Status!=BME680_OK){display.printf(iaqSensor.bme680Status<BME680_OK?"BME680 err[%d]\n":"BME680 warn[%d]\n",iaqSensor.bme680Status);display.display();delay(5000);}
 }
+float mix(float a,float b,float x){return a*(1-x)+b*x;}
 
 
 void setup(){
@@ -126,7 +128,8 @@ void setup(){
 void loop(){
 	//ArduinoOTA.handle();
 	int lx=analogRead(36);//uint_16 [ 0 ~ 4096 ]
-	display.ssd1306_command(0x81);display.ssd1306_command(uint8_t(min(lx,256)/256.*254.)+1);//contrast
+	contrast+=(min(lx,64)/64.-contrast)*.1;//差の0.1倍を帰還
+	display.ssd1306_command(0x81);display.ssd1306_command(uint8_t(contrast*254.)+1);//明るさ
 
 	if(iaqSensor.run()){//新規データがあったら更新 クソコードに見えるが一度に取得すると処理落ちする
 		s="{\ntemp: "+String(iaqSensor.temperature);
@@ -143,5 +146,5 @@ void loop(){
 		display.display();
 	}
 
-	delay(50);
+	delay(50);//だいたい20fps
 }
