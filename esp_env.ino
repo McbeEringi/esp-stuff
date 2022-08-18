@@ -54,6 +54,8 @@ void setup(){
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);//動作モードとアドレスを指定してディスプレイ接続開始
 
 	/////ディスプレイ初期設定
+	display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
+	display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
 	//display.setTextSize(2);
 	display.setTextColor(SSD1306_WHITE);
 	display.setTextWrap(false);
@@ -120,13 +122,10 @@ void setup(){
 	// }
 
 
-	display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
-	display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
 	display.printf("Done!\n");display.display();
 	delay(500);
 }
 void loop(){
-	//ArduinoOTA.handle();
 	int lx=analogRead(36);//uint_16 [ 0 ~ 4096 ]
 	contrast+=(min(lx,64)/64.-contrast)*.1;//差の0.1倍を帰還
 	display.ssd1306_command(0x81);display.ssd1306_command(uint8_t(contrast*254.)+1);//明るさ
