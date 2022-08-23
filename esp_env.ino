@@ -52,11 +52,14 @@ void setup(){
 	Serial.begin(115200);while(!Serial)delay(10);//シリアル接続開始 開始待機
 	Wire.begin();//i2c接続開始
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);//動作モードとアドレスを指定してディスプレイ接続開始
+	pinMode(39,OUTPUT);digitalWrite(39,HIGH);
+	pinMode(34,OUTPUT);digitalWrite(34,LOW);
 
 	/////ディスプレイ初期設定
 	display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
 	display.ssd1306_command(0xdb);display.ssd1306_command(0x20);//Vcomh
 	//display.setTextSize(2);
+	display.setRotation(2);
 	display.setTextColor(SSD1306_WHITE);
 	display.setTextWrap(false);
 
