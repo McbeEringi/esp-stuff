@@ -52,8 +52,6 @@ void setup(){
 	Serial.begin(115200);while(!Serial)delay(10);//シリアル接続開始 開始待機
 	Wire.begin();//i2c接続開始
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);//動作モードとアドレスを指定してディスプレイ接続開始
-	pinMode(39,OUTPUT);digitalWrite(39,HIGH);
-	pinMode(34,OUTPUT);digitalWrite(34,LOW);
 
 	/////ディスプレイ初期設定
 	display.ssd1306_command(0xd9);display.ssd1306_command(0x11);//precharge
@@ -129,7 +127,7 @@ void setup(){
 	delay(500);
 }
 void loop(){
-	int lx=analogRead(36);//uint_16 [ 0 ~ 4096 ]
+	int lx=analogRead(23);//uint_16 [ 0 ~ 4096 ]
 	contrast+=(min(lx,64)/64.-contrast)*.1;//差の0.1倍を帰還
 	display.ssd1306_command(0x81);display.ssd1306_command(uint8_t(contrast*254.)+1);//明るさ
 
