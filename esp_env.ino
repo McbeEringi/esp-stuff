@@ -1,50 +1,23 @@
 #include <Arduino.h>
 #include <Wire.h>
-//#include <WiFi.h>
-//#include <ArduinoOTA.h>
 #include "util.h"
 
 //ライブラリマネージャからインストール
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "bsec.h"
-#include <NimBLEDevice.h>
-
-//手動インストール必須
-//#include <AsyncTCP.h>//https://github.com/me-no-dev/AsyncTCP
-//#include <ESPAsyncWebServer.h>//https://github.com/me-no-dev/ESPAsyncWebServer
 
 /////グローバル
-//struct vec2{uint8_t x;uint8_t y;};
 Bsec iaqSensor;
 Adafruit_SSD1306 display(128,64,&Wire,-1);//width,height
-//vec2 o;
 String s;
 float contrast=1.;
-
-NimBLEAddress *addr;
-static NimBLEUUID CTSserviceUUID("1805");
-static NimBLEUUID CTScharUUID("2a2b");
-static NimBLEUUID BATTserviceUUID("180f");
-static NimBLEUUID BATTcharUUID("2a19");
-class svrCB: public NimBLEServerCallbacks{
-	void onConnect(NimBLEServer *svr){
-		addr=new NimBLEAddress(svr->getPeerInfo(0).getAddress());
-		Serial.printf("svr con: %s\n", addr->toString().c_str());
-		//svr->getAdvertising()->stop();
-	};
-	void onDisconnect(NimBLEServer *svr){Serial.printf("svr discon\n");};
-};
-class cliCB: public NimBLEClientCallbacks{
-	void onConnect(NimBLEClient *cli){Serial.printf("cli con\n");};
-	void onDisconnect(NimBLEClient *cli){Serial.printf("cli discon\n");};
-};
 
 void iaqerr(){
 	if(iaqSensor.status!=BSEC_OK){display.printf(iaqSensor.status<BSEC_OK?"BSEC err[%d]\n":"BSEC warn[%d]\n",iaqSensor.status);display.display();delay(5000);}
 	if(iaqSensor.bme680Status!=BME680_OK){display.printf(iaqSensor.bme680Status<BME680_OK?"BME680 err[%d]\n":"BME680 warn[%d]\n",iaqSensor.bme680Status);display.display();delay(5000);}
 }
-float mix(float a,float b,float x){return a*(1-x)+b*x;}
+//float mix(float a,float b,float x){return a*(1-x)+b*x;}
 
 
 void setup(){
@@ -94,44 +67,16 @@ void setup(){
 	iaqSensor.updateSubscription(sensorList,6,BSEC_SAMPLE_RATE_LP);iaqerr();//リスト登録 モード設定
 	display.printf(" OK.\n");display.display();delay(200);
 
-	//BLE時刻取得 CTS
-	// NimBLEDevice::init("ESP_Clock");
-	// NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_SC);
-	// NimBLEServer *svr=NimBLEDevice::createServer(); 
-	// NimBLEClient *cli=NimBLEDevice::createClient(); 
-	// NimBLEAdvertising *adv=svr->getAdvertising();
-	// svr->setCallbacks(new svrCB());
-	// cli->setClientCallbacks(new cliCB());
-	// NimBLEService* battsrv = svr->createService(BATTserviceUUID);
-  // NimBLECharacteristic* battchar = battsrv->createCharacteristic(BATTcharUUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
-	// battchar->setValue(10);
-	// battsrv->start();
-	// adv->addServiceUUID("1812");
-	// adv->addServiceUUID(BATTserviceUUID);
-	// adv->start();
-	// while(addr==NULL)delay(100);
-	// cli->connect(addr);
-
-	// while(true){
-	// 	std::string val=cli->getValue(CTSserviceUUID,CTScharUUID);
-	// 	Serial.printf("CTS val: { length: %d, val: %s }\n",val.length(),val.c_str());
-	// 	if(val.length()==10){
-	// 		Serial.printf("%d-%02d-%02d %02d:%02d:%02d.%03d %d x%02x\n", val[1] << 8 | val[0], val[2], val[3], val[4], val[5], val[6], val[8]*1000/256, val[7], val[9]);
-	// 		break;
-	// 	}
-	// 	delay(1000);
-	// }
-
-
 	display.printf("Done!\n");display.display();
 	delay(500);
 }
 void loop(){
-	int lx=analogRead(23);//uint_16 [ 0 ~ 4096 ]
+	int lx=analogRead(39);//uint_16 [ 0 ~ 4096 ]
+  Serial.println(lx);
 	contrast+=(min(lx,64)/64.-contrast)*.1;//差の0.1倍を帰還
 	display.ssd1306_command(0x81);display.ssd1306_command(uint8_t(contrast*254.)+1);//明るさ
 
-	if(iaqSensor.run()){//新規データがあったら更新 クソコードに見えるが一度に取得すると処理落ちする
+	if(iaqSensor.run()){//新規データがあったら更新 一度に取得すると処理落ちする
 		s="{\ntemp: "+String(iaqSensor.temperature);
 		s+=",\nhum: "+String(iaqSensor.humidity);
 		s+=",\natm: "+String(iaqSensor.pressure/100.);
