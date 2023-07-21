@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>ESP_LEDDRV</title>
+</head>
+<body>
+	<style>
+		:root,input{background-color:#222;color:#fff;font-family:monospace;}
+		input{vertical-align:middle;}input[type=range]{width:100%;max-width:640px;margin:0;box-sizing:border-box;}
+		pre{white-space:pre-wrap;}
+	</style>
+
+	<h1>ESP_LEDDRV</h1>
+	<div id="wrap" hidden>
+		R:<input type="range" id="ir" step="any" value="0"><br>
+		G:<input type="range" id="ig" step="any" value="0"><br>
+		B:<input type="range" id="ib" step="any" value="0"><br><br>
+		H:<input type="range" id="ih" step="any" value="0"><br>
+		S:<input type="range" id="is" step="any" value="0"><br>
+		V:<input type="range" id="iv" step="any" value="0"><br>
+	</div>
+	<pre id="log">Connecting…</pre>
+	<button id="logout">logout</button>
+
+	<script>
+		'use strict';
+		let ws,recieved={},timer=0;
+		const ws_init=()=>{
+			console.log('ws_init');
+			ws=new WebSocket(`ws://${window.location.hostname}/ws`);
+			ws.onopen=e=>{
+				console.log(log.textContent='Opened :)');
+			};
+			ws.onclose=e=>{
+				console.log(log.textContent='Closed :(');
+				wrap.hidden=true;
+				setTimeout(ws_init,2000);
+			};
+			ws.onmessage=e=>{
+				Object.assign(recieved,JSON.parse(e.data));
+				log.textContent=JSON.stringify(recieved,null,'\t');
+				if(recieved.purpose=='init')wrap.hidden=false;
+			};
+			ws.onerror=console.log;
+		},
+		send=()=>ws.send('0'+[ir,ig,ib].map(x=>(''+Math.round(x.value/100*recieved.max)).padStart(recieved.zpad,'0')).join('')),
+		hsv=(h=0,s=1,v=1)=>[5,3,1].map(i=>((k=(h*6+i)%6)=>v-Math.max(0,Math.min(1,k,4-k))*s*v)()),
+		rgb=(r=0,g=0,b=0)=>((v=Math.max(r,g,b),c=v-Math.min(r,g,b))=>[c&&((v==r?(g-b)/c:v==g?2+(b-r)/c:4+(r-g)/c)/6+1)%1,v&&c/v,v])();
+
+		[
+			[[ir,ig,ib],()=>send(rgb(...[ir,ig,ib].map(y=>y.value/100)).forEach((y,i)=>[ih,is,iv][i].value=y*100))],
+			[[ih,is,iv],()=>send(hsv(...[ih,is,iv].map(y=>y.value/100)).forEach((y,i)=>[ir,ig,ib][i].value=y*100))]
+		].forEach(w=>
+			w[0].forEach((x,i)=>{
+				x.oninput=()=>{if(timer)return;w[1]();timer=setTimeout(()=>timer=0,50);};
+				x.onchange=()=>{clearTimeout(timer);timer=0;w[1]();};
+			})
+		);
+		logout.onclick=()=>fetch('/logout').finally(()=>location.reload());
+		onload=ws_init;
+	</script>
+</body>
+</html>
