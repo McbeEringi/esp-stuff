@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<title>index</title>
+	</head>
+	<body>
+		<style>:root{color:#fff;background-color:#222;font-family:monospace;}input{width:100%;}</style>
+		<label>H: <input type="range" min="0" max="1" step="any"></label><br>
+		<label>S: <input type="range" min="0" max="1" step="any"></label><br>
+		<label>V: <input type="range" min="0" max="1" step="any"></label>
+		<script>
+			let
+				ws,
+				rgb=(h=0,s=1,v=1)=>[5,3,1].map((i,k)=>(k=(h*6+i)%6,v-Math.max(0,Math.min(1,k,4-k))*s*v)),
+				inp=[...document.querySelectorAll('input[type=range]')],
+				send=_=>_,
+				main=_=>ws=Object.assign(new WebSocket(`ws://${location.hostname}/ws`),{
+					binaryType:'arraybuffer',
+					onopen:e=>console.log(e,send=_=>ws.send(new Float32Array(rgb(...inp.map(x=>x.value)).map(x=>x*255))),inp.forEach(x=>x.disabled=false)),
+					onclose:e=>console.log(e,send=_=>_,inp.forEach(x=>x.disabled=true),setTimeout(main,2000))
+				});
+
+				inp.forEach(x=>(x.disabled=true,x.oninput=_=>send()));
+				main();
+		</script>
+	</body>
+</html>

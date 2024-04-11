@@ -6,3 +6,5 @@
 
 - c3_7seg_clk 4桁led7セグをシフトレジスタで駆動
 - esp_rgmux 3色ledの駆動
+
+- misc テスト用色々
