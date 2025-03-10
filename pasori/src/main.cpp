@@ -1,3 +1,9 @@
+//https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/usb_host.html
+//https://github.com/espressif/esp-idf/tree/472792eb8a751a278401fe266356ea2f9cb3f53b/examples/peripherals/usb/host/usb_host_lib/main
+//https://neocat.hatenablog.com/entry/20101123/1290514516
+//https://neocat.hatenablog.com/entry/20101202/1291311998
+//https://github.com/rfujita/libpafe/blob/master/src/pasori_command.c
+
 #include <Arduino.h>
 #include <usb/usb_host.h>
 
