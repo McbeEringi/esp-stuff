@@ -14,8 +14,7 @@ uint8_t rev8(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i){r=r<<1;r|=(x>>i)&1;
 uint32_t rev(uint32_t x){uint32_t r=0;for(uint8_t i=0;i<32;i+=8){r|=rev8(x>>i)<<i;}return r;}
 
 void setup(){
-  // IrReceiver.begin(4, ENABLE_LED_FEEDBACK); // Start the receiver
-	Serial.begin(9600);
+	Serial.begin(115200);
 	neopixelWrite(9, 4,0,4);
 	attachInterrupt(4, recv_cb,FALLING);
 	timer=timerBegin(0, getApbFrequency()/1000000, true);
