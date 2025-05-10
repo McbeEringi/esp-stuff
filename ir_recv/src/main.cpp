@@ -10,8 +10,8 @@ uint32_t data=0;
 void IRAM_ATTR recv_cb(){if(150<t){t=0;cnt=0;prev=0;data=0;}}
 void IRAM_ATTR timer_cb(){flag=0;}
 
-uint8_t rev8(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i){r=r<<1;r|=(x>>i)&1;}return r;}
-uint32_t rev(uint32_t x){uint32_t r=0;for(uint8_t i=0;i<32;i+=8){r|=rev8(x>>i)<<i;}return r;}
+uint8_t rev8(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i)r=(r<<1)|((x>>i)&1);return r;}
+uint32_t rev(uint32_t x){uint32_t r=0;for(uint8_t i=0;i<32;i+=8)r|=rev8(x>>i)<<i;return r;}
 
 void setup(){
 	Serial.begin(115200);
