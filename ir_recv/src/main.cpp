@@ -7,7 +7,7 @@ uint8_t cnt=0;
 uint8_t prev=0;
 uint32_t data=0;
 
-void IRAM_ATTR recv_cb(){if(150<t){t=0;cnt=0;prev=0;data=0;}}
+void IRAM_ATTR recv_cb(){if(148<t){t=0;cnt=0;prev=0;data=0;}}
 void IRAM_ATTR timer_cb(){flag=0;}
 
 uint8_t rev8(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i)r=(r<<1)|((x>>i)&1);return r;}
@@ -21,13 +21,13 @@ void setup(){
   timerAttachInterrupt(timer,timer_cb,true);
   timerAlarmWrite(timer,562,true);
   timerAlarmEnable(timer);
-	delay(500);
+	delay(100);
 }
 
 void loop(){
 	flag=1;
 	delayMicroseconds(10);
-	if(t<200){
+	if(t<150){
 		uint8_t x=digitalRead(4)?0:1;
 		if(x^prev&x){data=data<<1;data|=2<cnt;cnt=0;}
 		if(148==t){
@@ -39,6 +39,6 @@ void loop(){
 		neopixelWrite(9, 0,4,0);
 		cnt++;
 		t++;
-	}else neopixelWrite(9, 4,4,0);
+	}else neopixelWrite(9, 0,0,0);
 	while(flag)delayMicroseconds(10);
 }
