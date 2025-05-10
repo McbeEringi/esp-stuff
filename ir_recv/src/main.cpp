@@ -2,6 +2,9 @@
 hw_timer_t * timer = NULL;
 uint16_t t=65535;
 uint8_t flag=0;
+
+uint16_t cc=0;
+
 void IRAM_ATTR recv_cb(){t=0;}
 void IRAM_ATTR timer_cb(){flag=0;}
 void setup(){
@@ -17,9 +20,16 @@ void setup(){
 
 void loop(){
 	flag=1;
-	if(t<890){
+	delayMicroseconds(10);
+	if(t<100){
+		if(t==0){
+			cc=0;
+		}
+		if(24<=t&&t<40){cc=cc<<1;cc|=digitalRead(4)?1:0;}
+		if(40<=t&&cc==0xc68a)
 		neopixelWrite(9, 0,4,0);
+
 		t++;
 	}else neopixelWrite(9, 4,4,0);
-	while(flag)delayMicroseconds(1);
+	while(flag)delayMicroseconds(10);
 }
