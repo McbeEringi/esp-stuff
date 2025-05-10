@@ -10,7 +10,8 @@ uint32_t data=0;
 void IRAM_ATTR recv_cb(){if(150<t){t=0;cnt=0;prev=0;data=0;}}
 void IRAM_ATTR timer_cb(){flag=0;}
 
-uint8_t rev(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i){r=r<<1;r|=(x>>i)&1;}return r;}
+uint8_t rev8(uint8_t x){uint8_t r=0;for(uint8_t i=0;i<8;++i){r=r<<1;r|=(x>>i)&1;}return r;}
+uint32_t rev(uint32_t x){uint32_t r=0;for(uint8_t i=0;i<32;i+=8){r|=rev8(x>>i)<<i;}return r;}
 
 void setup(){
   // IrReceiver.begin(4, ENABLE_LED_FEEDBACK); // Start the receiver
@@ -31,8 +32,9 @@ void loop(){
 		uint8_t x=digitalRead(4)?0:1;
 		if(x^prev&x){data=data<<1;data|=2<cnt;cnt=0;}
 		if(148==t){
+			data=rev(data);
 			Serial.printf("%08lx\n",data);
-			if(!((data>>16)^0x3615))Serial.printf("\t%d\n",rev((data>>8)&0xff));
+			if(!((data>>16)^0x6ca8))Serial.printf("\t%d\n",(data>>8)&0xff);
 		}
 
 		neopixelWrite(9, 0,4,0);
