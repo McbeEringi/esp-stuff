@@ -30,7 +30,10 @@ void loop(){
 	if(t<200){
 		uint8_t x=digitalRead(4)?0:1;
 		if(x^prev&x){data=data<<1;data|=2<cnt;cnt=0;}
-		if(148==t&&!((data>>16)^0x3615))Serial.printf("%d\n",rev((data>>8)&0xff));
+		if(148==t){
+			Serial.printf("%08lx\n",data);
+			if(!((data>>16)^0x3615))Serial.printf("\t%d\n",rev((data>>8)&0xff));
+		}
 
 		neopixelWrite(9, 0,4,0);
 		cnt++;
