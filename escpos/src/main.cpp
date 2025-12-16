@@ -23,7 +23,8 @@
 HardwareSerial escpos(0);
 
 static AsyncWebServer svr(80);
-static AsyncWebSocket ws("/ws");
+static AsyncWebSocketMessageHandler wsh;
+static AsyncWebSocket ws("/ws",wsh.eventHandler());
 
 bool isAPmode=false;
 
@@ -59,7 +60,7 @@ void setup(){
 	);
 
 	for(uint8_t i=8;i;--i){
-		if(isAPmode)neopixelWrite(NPDI,0,16,16);
+		if(isAPmode)neopixelWrite(NPDI,0,0,32);
 		else neopixelWrite(NPDI,0,16,0);
 		delay(62);
 		neopixelWrite(NPDI,0,0,0);
@@ -73,34 +74,21 @@ void setup(){
 		.onError([](ota_error_t e){neopixelWrite(NPDI,64,0,64);delay(3000);ws.enable(true);FSYS.begin();})
 		.begin();
 
-	ws.onEvent([](
+	wsh.onMessage([](
 		AsyncWebSocket *svr,AsyncWebSocketClient *cli,
-		AwsEventType type,void *arg,
-		uint8_t *w,size_t l
+		const uint8_t *w,size_t l
 	){
-		if (type == WS_EVT_CONNECT) {
-		} else if (type == WS_EVT_DISCONNECT) {
-		} else if (type == WS_EVT_ERROR) {
-		} else if (type == WS_EVT_PONG) {
-		} else if (type == WS_EVT_DATA) {
-			escpos.write(w,l);
-			svr->binaryAll(w,l);
-			// AwsFrameInfo *info = (AwsFrameInfo *)arg;
-			// if (info->final && info->index == 0 && info->len == len) {
-			// }
-		}
+		if(1024<l)cli->text("too long! should less than 1024.\n");
+		else{escpos.write(w,l);cli->text("ok");}
 	});
 	svr.addHandler(&ws);
-	// svr.onNotFound([](AsyncWebServerRequest *r){r->redirect(PUB_DIR);});
-	// svr.serveStatic(PUB_DIR,FSYS,PUB_DIR).setDefaultFile("index.html").setTryGzipFirst(false);
-	// svr.serveStatic(PVT_DIR,FSYS,PVT_DIR).setDefaultFile("index.html").setTryGzipFirst(false).setAuthentication(NAME,PASS,AsyncAuthType::AUTH_BASIC);
 	svr.onNotFound([](AsyncWebServerRequest *req){
-			if(req->url().startsWith(PUB_DIR)&&fs_send(req))return;
-			if(req->url().startsWith(PVT_DIR)){
-				if(!req->authenticate(NAME,PASS))return req->requestAuthentication();
-				else if(fs_send(req))return;
-			}
-			req->redirect(PUB_DIR);
+		if(req->url().startsWith(PUB_DIR)&&fs_send(req))return;
+		if(req->url().startsWith(PVT_DIR)){
+			if(!req->authenticate(NAME,PASS))return req->requestAuthentication();
+			else if(fs_send(req))return;
+		}
+		req->redirect(PUB_DIR);
 	});
 	svr.begin();
 }
