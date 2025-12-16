@@ -70,17 +70,19 @@ GBK=class{
 	decode(x){return this.td.decode(x);}
 },
 gbk=new GBK(),
-rasyomon_gbk=gbk.encode(rasyomon);
+rasyomon_gbk=gbk.encode(rasyomon.slice(0,718));
+console.log(rasyomon_gbk.length);
 
 console.log(
 	rasyomon_gbk.map(x=>x?.toString(16)?.padStart(2,0))
 );
 
-await new Promise(f=>Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
+await new Promise(f=>console.log(Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
 	onopen:({target:ws})=>(
 		console.log('opened',ws),
 		ws.send(new Uint8Array(rasyomon_gbk))
 	),
+	onmessage:({data:x})=>console.log(x,x.length),
 	onclose:f
-}));
+})));
 

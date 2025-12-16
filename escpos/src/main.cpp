@@ -9,8 +9,8 @@
 #define NAME "esp-tp"
 #define PASS "mcbeeringi"
 
-#define PUB_DIR "/public"
-#define PVT_DIR "/private"
+#define PUB_DIR "/public/"
+#define PVT_DIR "/private/"
 #define WIFI_CFG "/private/wifi.tsv"
 
 #define NPDI 1
@@ -32,6 +32,13 @@ Btn btn={false,false};
 void ARDUINO_ISR_ATTR isr_btn_a(void *arg){(static_cast<Btn *>(arg))->a=true;}
 void ARDUINO_ISR_ATTR isr_btn_b(void *arg){(static_cast<Btn *>(arg))->b=true;}
 
+
+bool fs_send(AsyncWebServerRequest *req){
+	String x=req->url();
+	if(x[x.length()-1]=='/')x+="index.html";
+	if(FSYS.exists(x)){req->send(FSYS,x);return true;}
+	return false;
+}
 
 void setup(){
 	neopixelWrite(NPDI,16,0,0);
@@ -84,9 +91,17 @@ void setup(){
 		}
 	});
 	svr.addHandler(&ws);
-	svr.onNotFound([](AsyncWebServerRequest *r){r->redirect(PUB_DIR);});
-	svr.serveStatic(PUB_DIR,FSYS,PUB_DIR).setDefaultFile("index.html");
-	svr.serveStatic(PVT_DIR,FSYS,PVT_DIR).setDefaultFile("index.html").setAuthentication(NAME,PASS,AsyncAuthType::AUTH_BASIC);
+	// svr.onNotFound([](AsyncWebServerRequest *r){r->redirect(PUB_DIR);});
+	// svr.serveStatic(PUB_DIR,FSYS,PUB_DIR).setDefaultFile("index.html").setTryGzipFirst(false);
+	// svr.serveStatic(PVT_DIR,FSYS,PVT_DIR).setDefaultFile("index.html").setTryGzipFirst(false).setAuthentication(NAME,PASS,AsyncAuthType::AUTH_BASIC);
+	svr.onNotFound([](AsyncWebServerRequest *req){
+			if(req->url().startsWith(PUB_DIR)&&fs_send(req))return;
+			if(req->url().startsWith(PVT_DIR)){
+				if(!req->authenticate(NAME,PASS))return req->requestAuthentication();
+				else if(fs_send(req))return;
+			}
+			req->redirect(PUB_DIR);
+	});
 	svr.begin();
 }
 void loop(){
