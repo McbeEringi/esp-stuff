@@ -45,14 +45,15 @@ bool fs_send(AsyncWebServerRequest *req){
 }
 
 void setup(){
-	neopixelWrite(NPDI,16,0,0);
+	pinMode(BTNA,INPUT_PULLUP);
+	pinMode(BTNB,INPUT_PULLUP);
+	isAPmode=digitalRead(BTNA)==LOW&&digitalRead(BTNB)==LOW;
+	if(isAPmode)neopixelWrite(NPDI,8,8,8);
+	else neopixelWrite(NPDI,16,0,0);
 	FSYS.begin();
 	Serial.begin(115200);
 	escpos.begin(115200);
 	escpos.write(P_INIT);
-	pinMode(BTNA,INPUT_PULLUP);
-	pinMode(BTNB,INPUT_PULLUP);
-	isAPmode=digitalRead(BTNA)==LOW&&digitalRead(BTNB)==LOW;
 	attachInterruptArg(BTNA,isr_btn_a,&btn,FALLING);
 	attachInterruptArg(BTNB,isr_btn_b,&btn,FALLING);
 	delay(1000);
@@ -89,7 +90,7 @@ void setup(){
 	svr.onNotFound([](AsyncWebServerRequest *req){
 		if(req->url().startsWith(PUB_DIR)&&fs_send(req))return;
 		if(req->url().startsWith(PVT_DIR)){
-			if(!req->authenticate(NAME,PASS))return req->requestAuthentication();
+			if(!req->authenticate(NAME,PASS))return req->requestAuthentication(AsyncAuthType::AUTH_BASIC);
 			else if(fs_send(req))return;
 		}
 		req->redirect(PUB_DIR);
