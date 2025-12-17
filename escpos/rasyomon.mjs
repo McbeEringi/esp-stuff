@@ -70,20 +70,24 @@ GBK=class{
 	decode(x){return this.td.decode(x);}
 },
 gbk=new GBK(),
+chop=w=>[...Array(Math.ceil(w.length/1024))].map((_,i)=>w.slice(i*1024,++i*1024)),
 rasyomon_gbk=gbk.encode(rasyomon);
 
 console.log(
 	rasyomon_gbk.map(x=>x?.toString(16)?.padStart(2,0))
 );
 
-// function(){}
-
+let a;
 await new Promise(f=>console.log(Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
 	onopen:({target:ws})=>(
 		console.log('open'),
-		ws.send(new Uint8Array(rasyomon_gbk))
+		a=chop(rasyomon_gbk),
+		ws.send(new Uint8Array(a.shift()))
 	),
-	onmessage:({data:x})=>console.log(x,x.length),
+	onmessage:async({target:ws,data:x})=>(
+		console.log(x),
+		x=='ok'&&(a.length?(await new Promise(f=>setTimeout(f,2000)),ws.send(new Uint8Array(a.shift()))):ws.close())
+	),
 	onclose:f
 })));
 

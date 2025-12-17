@@ -48,13 +48,14 @@ void setup(){
 	escpos.begin(115200);
 	escpos.write(P_INIT);
 	pinMode(BTNA,INPUT_PULLUP);
-	attachInterruptArg(BTNA,isr_btn_a,&btn,FALLING);
 	pinMode(BTNB,INPUT_PULLUP);
+	isAPmode=digitalRead(BTNA)==LOW&&digitalRead(BTNB)==LOW;
+	attachInterruptArg(BTNA,isr_btn_a,&btn,FALLING);
 	attachInterruptArg(BTNB,isr_btn_b,&btn,FALLING);
 	delay(1000);
 
 	isAPmode=wlan(
-		NPDI,
+		isAPmode,NPDI,
 		FSYS,WIFI_CFG,
 		NAME,PASS
 	);
