@@ -20,6 +20,8 @@
 #define P_INIT "\x1b\x40"
 #define P_SELF "\x1b##SELF"
 
+#define BUFLEN 8
+
 HardwareSerial escpos(0);
 
 static AsyncWebServer svr(80);
@@ -27,6 +29,7 @@ static AsyncWebSocketMessageHandler wsh;
 static AsyncWebSocket ws("/ws",wsh.eventHandler());
 
 bool isAPmode=false;
+uint8_t buf[BUFLEN];
 
 struct Btn{bool a;bool b;};
 Btn btn={false,false};
@@ -96,9 +99,16 @@ void setup(){
 void loop(){
 	ArduinoOTA.handle();
 	while(Serial.available()){
-		uint8_t x=Serial.read();
-		Serial.write(x);
-		escpos.write(x);
+		uint8_t l=min(BUFLEN,Serial.available());
+		Serial.readBytes(buf,l);
+		Serial.write(buf,l);
+		escpos.write(buf,l);
+	}
+	while(escpos.available()){
+		uint8_t l=min(BUFLEN,escpos.available());
+		escpos.readBytes(buf,l);
+		Serial.write(buf,l);
+		ws.binaryAll(buf,l);
 	}
 	// uint8_t x=((!digitalRead(BTNA))<<1)|(!digitalRead(BTNB));
 	// if(x!=btn){
