@@ -16,6 +16,7 @@
 #define NPDI 1
 #define BTNA 2
 #define BTNB 3
+#define CTS 10
 
 #define P_INIT "\x1b\x40"
 #define P_SELF "\x1b##SELF"
@@ -47,6 +48,7 @@ bool fs_send(AsyncWebServerRequest *req){
 void setup(){
 	pinMode(BTNA,INPUT_PULLUP);
 	pinMode(BTNB,INPUT_PULLUP);
+	pinMode(CTS,INPUT);
 	isAPmode=digitalRead(BTNA)==LOW&&digitalRead(BTNB)==LOW;
 	if(isAPmode)neopixelWrite(NPDI,8,8,8);
 	else neopixelWrite(NPDI,16,0,0);
@@ -83,8 +85,8 @@ void setup(){
 		AsyncWebSocket *svr,AsyncWebSocketClient *cli,
 		const uint8_t *w,size_t l
 	){
-		if(1024<l)cli->text("too long! should less than 1024.\n");
-		else{escpos.write(w,l);cli->text("ok");}
+		if(1024<l)cli->text("Too long! Should be 1024 or less.\n");
+		else{while(digitalRead(CTS))delay(50);escpos.write(w,l);cli->text("OK");}
 	});
 	svr.addHandler(&ws);
 	svr.onNotFound([](AsyncWebServerRequest *req){
@@ -99,7 +101,7 @@ void setup(){
 }
 void loop(){
 	ArduinoOTA.handle();
-	while(Serial.available()){
+	while(!digitalRead(CTS)&&Serial.available()){
 		uint8_t l=min(BUFLEN,Serial.available());
 		Serial.readBytes(buf,l);
 		Serial.write(buf,l);

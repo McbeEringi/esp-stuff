@@ -67,27 +67,20 @@ GBK=class{
 		a[this.td.decode(new Uint8Array(x))]=x,a
 	),{});
 	encode(x){return[...x].flatMap(x=>this.e[x]??(console.log('not found!',x),this.e['?']));}
-	decode(x){return this.td.decode(x);}
+	decode(x){return this.td.decode(new Uint8Array(x));}
 },
 gbk=new GBK(),
-chop=w=>[...Array(Math.ceil(w.length/1024))].map((_,i)=>w.slice(i*1024,++i*1024)),
+chop=(w,l=1024)=>[...Array(Math.ceil(w.length/l))].map((_,i)=>w.slice(i*l,++i*l)),
 rasyomon_gbk=gbk.encode(rasyomon);
 
-console.log(
-	rasyomon_gbk.map(x=>x?.toString(16)?.padStart(2,0))
-);
+// console.log(chop(rasyomon_gbk).map(x=>gbk.decode(x)));
 
 let a;
-await new Promise(f=>console.log(Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
-	onopen:({target:ws})=>(
-		console.log('open'),
-		a=chop(rasyomon_gbk),
-		ws.send(new Uint8Array(a.shift()))
-	),
-	onmessage:async({target:ws,data:x})=>(
-		console.log(x),
-		x=='ok'&&(a.length?(await new Promise(f=>setTimeout(f,2000)),ws.send(new Uint8Array(a.shift()))):ws.close())
-	),
-	onclose:f
-})));
-
+await((
+	a=chop(rasyomon_gbk),
+	send=ws=>(ws.send(new Uint8Array(a.shift())),console.log('sent. remaining chunks:'a.length))
+)=>new Promise(f=>console.log(Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
+	onopen:({target:ws})=>(console.log('opened.'),send(ws)),
+	onmessage:async({target:ws,data:x})=>(x=='OK'&&(a.length?send(ws):ws.close())),
+	onclose:_=>(console.log('closed.'),f())
+}))))();
