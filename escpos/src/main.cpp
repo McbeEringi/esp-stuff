@@ -22,6 +22,7 @@
 #define P_SELF "\x1b##SELF"
 
 #define BUFLEN 8
+#define MSGMAXLEN 512
 
 HardwareSerial escpos(0);
 
@@ -85,7 +86,7 @@ void setup(){
 		AsyncWebSocket *svr,AsyncWebSocketClient *cli,
 		const uint8_t *w,size_t l
 	){
-		if(1024<l)cli->text("Too long! Should be 1024 or less.\n");
+		if(MSGMAXLEN<l)cli->printf("Too long! Should be %d or less.\n",MSGMAXLEN);
 		else{while(digitalRead(CTS))delay(50);escpos.write(w,l);cli->text("OK");}
 	});
 	svr.addHandler(&ws);
