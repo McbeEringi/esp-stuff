@@ -78,7 +78,7 @@ rasyomon_gbk=gbk.encode(rasyomon);
 let a;
 await((
 	a=chop(rasyomon_gbk),
-	send=ws=>(ws.send(new Uint8Array(a.shift())),console.log('sent. remaining chunks:'a.length))
+	send=ws=>(ws.send(new Uint8Array(a.shift())),console.log('remaining:',a.length))
 )=>new Promise(f=>console.log(Object.assign(new WebSocket('ws://esp-tp.local/ws'),{
 	onopen:({target:ws})=>(console.log('opened.'),send(ws)),
 	onmessage:async({target:ws,data:x})=>(x=='OK'&&(a.length?send(ws):ws.close())),
