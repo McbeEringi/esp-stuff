@@ -1,0 +1,29 @@
+const
+img2bin=({
+	genctx,img,printer_width=384,
+	transform:{rotate=0,scale=1}={},
+})=>((
+	bb=((
+		x=img.naturalWidth,y=img.naturalHeight,t=rotate,
+		c=Math.cos(t),s=Math.sin(t),
+		cx=c*x,sx=s*x,cy=c*y,sy=s*y
+	)=>[
+		[0,cx,cx-sy,-sy],
+		[0,sx,sx+cy,cy]
+	].map(w=>Math.max(...w)-Math.min(...w)))(),
+	sc=printer_width*scale/bb[0]
+)=>(
+	bb=bb.map(x=>x*sc),
+	console.log(bb,sc),
+	((ctx=genctx(...bb.map(Math.ceil)))=>(
+		ctx.translate(...bb.map(x=>x/2)),
+		ctx.rotate(-rotate),
+		ctx.scale(sc,sc),
+		ctx.translate(...bb.map(x=>-x/2*sc)),
+		ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2),
+		ctx
+	))()
+))();
+
+
+export{img2bin};

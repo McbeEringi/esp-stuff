@@ -3,5 +3,29 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 </head><body>
-	<h1>hello</h1>
+	<h1>esp-tp</h1>
+	<hr>
+	<input type="file" id="inp">
+	<button id="btn">run</button>
+	<script type="module">
+		import{img2bin}from'./img2bin.mjs';
+		btn.onclick=_=>[...inp.files].map(async x=>(
+			x=await new Promise((f,r)=>Object.assign(new Image(),{
+				src:URL.createObjectURL(x),
+				onload:({target:x})=>f(x),onerror:r
+			})),
+			URL.revokeObjectURL(x.src),
+			img2bin({
+				// genctx:(w,h)=>new OffscreenCanvas(w,h).getContext('2d'),
+				genctx:(w,h)=>(c=>(
+					Object.assign(c,{width:w,height:h}),
+					document.body.append(c),
+					console.log(c),
+					c.getContext('2d')
+				))(document.createElement('canvas')),
+				img:x,
+				transform:{rotate:Math.PI/8*2,scale:1}
+			})
+		))
+	</script>
 </body></html>
