@@ -48,12 +48,11 @@ img2bin=({
 	[
 		0x1d,0x76,0x30,
 		0,
-		...[cs[0]/8,cs[1]].flatMap(x=>[x&0xff,x>>8]),
+		...[Math.ceil(cs[0]/8),cs[1]].flatMap(x=>[x&0xff,x>>8]),
 		...gs.flatMap(x=>[...Array(Math.ceil(x.length/8))].map((_,i)=>(
 			x.slice(i*=8,i+8).reduce((a,x,i)=>((a<<1)|(x<128)),0)
 		)))
 	]
 ))();
-
 
 export{img2bin};
