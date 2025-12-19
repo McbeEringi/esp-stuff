@@ -13,8 +13,8 @@ textarea{width:100%;height:32ex;resize:none;}
 	<button id="tbtn">send txt</button><br>
 	<hr>
 	<label>img:<input type="file" id="img"></label><br>
-	<label>rotate:<input type="range" id="imgr" min="-8" max="8"></label><br>
-	<label>scale:<input type="range" id="imgs" min="0" max="2" step="0.2"></label><br>
+	<label>rotate:<input type="range" id="imgr" min="-4" max="4"></label><br>
+	<label>scale:<input type="range" id="imgs" min="0" max="1" step="0.25" value="1"></label><br>
 	<button id="ibtn">send img</button>
 	<script type="module">
 		import{WSPrint}from'./wsprint.mjs';
@@ -40,7 +40,7 @@ textarea{width:100%;height:32ex;resize:none;}
 				// 	c.getContext('2d')
 				// ))(document.createElement('canvas')),
 				img:x,
-				transform:{rotate:Math.PI/8*imgr.value,scale:imgs.value}
+				transform:{rotate:Math.PI/4*imgr.value,scale:imgs.value}
 			}),
 			console.log(x),
 			ws.send(x)
