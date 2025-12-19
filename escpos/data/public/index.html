@@ -3,33 +3,47 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<style>
-		:
+textarea{width:100%;height:32ex;resize:none;}
 	</style>
 </head><body>
 	<h1>esp-tp</h1>
 	<hr>
-	<input type="file" id="inp">
-	<button id="btn">run</button>
+
+	<textarea id="txt"></textarea><br>
+	<button id="tbtn">send txt</button><br>
+	<hr>
+	<label>img:<input type="file" id="img"></label><br>
+	<label>rotate:<input type="range" id="imgr" min="-8" max="8"></label><br>
+	<label>scale:<input type="range" id="imgs" min="0" max="2" step="0.2"></label><br>
+	<button id="ibtn">send img</button>
 	<script type="module">
+		import{WSPrint}from'./wsprint.mjs';
+		import{txt2bin}from'./txt2bin.mjs';
 		import{img2bin}from'./img2bin.mjs';
-		btn.onclick=_=>[...inp.files].map(async x=>(
+
+		self.ws=new WSPrint('/ws');
+
+		tbtn.onclick=_=>ws.send(txt2bin(txt.value));
+
+		ibtn.onclick=_=>[...img.files].map(async x=>(
 			x=await new Promise((f,r)=>Object.assign(new Image(),{
 				src:URL.createObjectURL(x),
 				onload:({target:x})=>f(x),onerror:r
 			})),
 			URL.revokeObjectURL(x.src),
-			console.log(
-			img2bin({
-				// genctx:(w,h)=>new OffscreenCanvas(w,h).getContext('2d'),
-				genctx:(w,h)=>(c=>(
-					Object.assign(c,{width:w,height:h}),
-					document.body.append(c),
-					c.getContext('2d')
-				))(document.createElement('canvas')),
+			
+			x=img2bin({
+				genctx:(w,h)=>new OffscreenCanvas(w,h).getContext('2d'),
+				// genctx:(w,h)=>(c=>(
+				// 	Object.assign(c,{width:w,height:h}),
+				// 	document.body.append(c),
+				// 	c.getContext('2d')
+				// ))(document.createElement('canvas')),
 				img:x,
-				transform:{rotate:Math.PI/8*1,scale:1}
-			})
-			)
+				transform:{rotate:Math.PI/8*imgr.value,scale:imgs.value}
+			}),
+			console.log(x),
+			ws.send(x)
 		))
 	</script>
 </body></html>

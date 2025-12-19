@@ -44,7 +44,15 @@ img2bin=({
 	))),
 
 	ctx.putImageData(new ImageData(new Uint8ClampedArray(gs.flatMap(x=>x.flatMap(x=>[x,x,x,255]))),...cs),0,0),
-	1
+
+	[
+		0x1d,0x76,0x30,
+		0,
+		...[cs[0]/8,cs[1]].flatMap(x=>[x&0xff,x>>8]),
+		...gs.flatMap(x=>[...Array(Math.ceil(x.length/8))].map((_,i)=>(
+			x.slice(i*=8,i+8).reduce((a,x,i)=>((a<<1)|(x<128)),0)
+		)))
+	]
 ))();
 
 
