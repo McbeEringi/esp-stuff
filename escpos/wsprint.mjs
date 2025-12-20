@@ -1,1 +1,0 @@
-data/public/wsprint.mjs

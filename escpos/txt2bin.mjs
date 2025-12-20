@@ -1,1 +1,0 @@
-data/public/txt2bin.mjs
