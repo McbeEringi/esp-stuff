@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+	<h1>esp-qr-reader</h1>
+	<hr>
+	<pre id="log"></pre>
+	<script type="module">
+		self.td=new TextDecoder();
+		(self.main=_=>(
+			log.textContent+='Connecting…\n',
+			self.ws=Object.assign(new WebSocket(`ws://${location.hostname}/ws`),{
+				binaryType:'arraybuffer',
+				onopen:_=>console.log(log.textContent+='Opened\n'),
+				onclose:_=>console.log(log.textContent+='Closed\n',setTimeout(main,2000)),
+				onmessage:e=>console.log(log.textContent=td.decode(new Uint8Array(e.data))+'\n')
+			})
+		))();
+	</script>
+</body></html>
