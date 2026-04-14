@@ -5,12 +5,11 @@
 #define NUM_PANEL 3
 #define BUF_SIZE 192 // 16*32*NUM_PAMEL/8
 
-#define NP 8
 #define S0 4
-#define S1 5
-#define S2 6
-#define SCK 1
-#define RCK 2
+#define S1 1
+#define S2 5
+#define SCK 2
+#define RCK 6
 #define OE 3
 #define OE_CH 0
 
@@ -34,7 +33,6 @@ uint8_t buf[BUF_SIZE]={
 };
 
 void setup(){
-	pinMode(NP,OUTPUT);
 	pinMode(S0,OUTPUT);
 	pinMode(S1,OUTPUT);
 	pinMode(S2,OUTPUT);
@@ -42,7 +40,6 @@ void setup(){
 	pinMode(RCK,OUTPUT);digitalWrite(RCK,HIGH);
 	pinMode(OE,OUTPUT);
 
-	neopixelWrite(NP,0,8,0);
 	ledcSetup(OE_CH,1000,LEDC_TIMER_14_BIT);ledcAttachPin(OE,OE_CH);
 	ledcWrite(OE_CH,0x3fff*
 		.5// (sin(millis()/1000.)*.5+.5)
