@@ -88,8 +88,10 @@ void dispInit(){
 void setup(){
 	Serial.begin();
 	dispInit();
+	delay(5000);
 }
 void loop(){
-	Serial.printf("hello %d\n",millis()/1000);
-	delay(1000);
+	Serial.printf("hello %d\n",millis());
+	for(uint8_t i=0;i<BUF_SIZE;++i)buf[i]=random(0x100);
+	delay(50);
 }
