@@ -31,8 +31,41 @@ uint8_t buf[BUF_SIZE]={
 0b00001100,0b00000100,0b00100001,0b11100000, 0b00000000,0b00010010,0b00000100,0b00110001, 0b00011000,0b10001000,0b01000010,0b00000000,
 0b00110000,0b00000010,0b00000000,0b00000000, 0b00000000,0b00010100,0b00000010,0b11000001, 0b00000110,0b10010001,0b11000010,0b00000000
 };
+TaskHandle_t *h_flush;
 
-void setup(){
+void flush(void *_){
+	while(1){
+		for(uint8_t j=0;j<16;++j){
+			for(uint8_t k=0;k<NUM_PANEL;++k){
+				for(uint8_t i=0;i<16;++i){
+					uint8_t
+						o=(NUM_PANEL*j+(NUM_PANEL-1-k))*4+(1-i/8),
+						_i=i%8;
+
+					uint32_t
+						smask=(1<<S0)|(1<<S1)|(1<<S2),
+						sdata=(
+							(i==j)<<S0
+						)|(
+							((buf[o  ]>>_i)&1)<<S1
+						)|(
+							((buf[o+2]>>_i)&1)<<S2
+						);
+
+					GPIO.out_w1tc.val=~sdata&smask;
+					GPIO.out_w1ts.val= sdata&smask;
+
+					digitalWrite(SCK,HIGH);
+					digitalWrite(SCK,LOW);
+				}
+			}
+			digitalWrite(RCK,LOW);
+			digitalWrite(RCK,HIGH);
+		}
+	}
+}
+
+void dispInit(){
 	pinMode(S0,OUTPUT);
 	pinMode(S1,OUTPUT);
 	pinMode(S2,OUTPUT);
@@ -40,29 +73,15 @@ void setup(){
 	pinMode(RCK,OUTPUT);digitalWrite(RCK,HIGH);
 	pinMode(OE,OUTPUT);
 
-	ledcSetup(OE_CH,1000,LEDC_TIMER_14_BIT);ledcAttachPin(OE,OE_CH);
-	ledcWrite(OE_CH,0x3fff*
-		.5// (sin(millis()/1000.)*.5+.5)
+	ledcSetup(OE_CH,65536,LEDC_TIMER_8_BIT);ledcAttachPin(OE,OE_CH);
+	ledcWrite(OE_CH,0xff*
+		.9// (sin(millis()/1000.)*.5+.5)
 	);
+	xTaskCreateUniversal(flush,"flush",512,NULL,2,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
-void loop(){
-	for(uint8_t j=0;j<16;++j){
-		for(uint8_t k=0;k<NUM_PANEL;++k){
-			for(uint8_t i=0;i<16;++i){
-				uint8_t
-					o=(NUM_PANEL*j+(NUM_PANEL-1-k))*4+(1-i/8),
-					_i=i%8;
 
-				digitalWrite(S0,i==j?HIGH:LOW);
-				digitalWrite(S1,(buf[o  ]>>_i)&1);
-				digitalWrite(S2,(buf[o+2]>>_i)&1);
 
-				digitalWrite(SCK,HIGH);
-				digitalWrite(SCK,LOW);
-			}
-		}
-		digitalWrite(RCK,LOW);
-		digitalWrite(RCK,HIGH);
-		delay(1);
-	}
+void setup(){
+	dispInit();
 }
+void loop(){}
