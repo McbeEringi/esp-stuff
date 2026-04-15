@@ -13,6 +13,9 @@
 #define OE 3
 #define OE_CH 0
 
+// #define _BV(X) (1<<(X))
+const uint32_t smask=_BV(S0)|_BV(S1)|_BV(S2);
+
 uint8_t buf[BUF_SIZE]={
 0b00000001,0b00000000,0b00000000,0b00000000, 0b00000000,0b00000000,0b00100000,0b00001000, 0b00100010,0b00000000,0b00000010,0b00000000,
 0b10000001,0b00000000,0b00000000,0b01100000, 0b00000000,0b00011100,0b00100000,0b11111111, 0b11111110,0b00111111,0b11111110,0b00000000,
@@ -43,7 +46,6 @@ void flush(void *_){
 						_i=i%8;
 
 					uint32_t
-						smask=(1<<S0)|(1<<S1)|(1<<S2),
 						sdata=(
 							(i==j)<<S0
 						)|(
@@ -55,12 +57,13 @@ void flush(void *_){
 					GPIO.out_w1tc.val=~sdata&smask;
 					GPIO.out_w1ts.val= sdata&smask;
 
-					digitalWrite(SCK,HIGH);
-					digitalWrite(SCK,LOW);
+					GPIO.out_w1ts.val=_BV(SCK);
+					GPIO.out_w1tc.val=_BV(SCK);
 				}
 			}
-			digitalWrite(RCK,LOW);
-			digitalWrite(RCK,HIGH);
+			GPIO.out_w1tc.val=_BV(RCK);
+			GPIO.out_w1ts.val=_BV(RCK);
+			delayMicroseconds(100);
 		}
 	}
 }
@@ -70,18 +73,23 @@ void dispInit(){
 	pinMode(S1,OUTPUT);
 	pinMode(S2,OUTPUT);
 	pinMode(SCK,OUTPUT);
-	pinMode(RCK,OUTPUT);digitalWrite(RCK,HIGH);
-	pinMode(OE,OUTPUT);
+	pinMode(RCK,OUTPUT);
+	// GPIO.enable_w1ts.val=smask|_BV(SCK)|_BV(RCK);
+	GPIO.out_w1ts.val=_BV(RCK);
 
 	ledcSetup(OE_CH,65536,LEDC_TIMER_8_BIT);ledcAttachPin(OE,OE_CH);
 	ledcWrite(OE_CH,0xff*
 		.9// (sin(millis()/1000.)*.5+.5)
 	);
-	xTaskCreateUniversal(flush,"flush",512,NULL,2,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
+	xTaskCreateUniversal(flush,"flush",512,NULL,1,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
 
 
 void setup(){
+	Serial.begin();
 	dispInit();
 }
-void loop(){}
+void loop(){
+	Serial.printf("hello %d\n",millis()/1000);
+	delay(1000);
+}
