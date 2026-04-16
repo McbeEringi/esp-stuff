@@ -4,6 +4,7 @@
 
 #define NUM_PANEL 3
 #define BUF_SIZE 192 // 16*32*NUM_PAMEL/8
+#define HASHL 8
 
 #define S0 4
 #define S1 1
@@ -17,7 +18,6 @@
 const uint32_t smask=_BV(S0)|_BV(S1)|_BV(S2);
 const uint8_t sum3[]={0,1,1,2,1,2,2,3};
 
-uint8_t bufi=0;
 uint8_t buf[2][BUF_SIZE]={{
 0b00000001,0b00000000,0b00000000,0b00000000, 0b00000000,0b00000000,0b00100000,0b00001000, 0b00100010,0b00000000,0b00000010,0b00000000,
 0b10000001,0b00000000,0b00000000,0b01100000, 0b00000000,0b00011100,0b00100000,0b11111111, 0b11111110,0b00111111,0b11111110,0b00000000,
@@ -35,10 +35,10 @@ uint8_t buf[2][BUF_SIZE]={{
 0b01000010,0b00001000,0b00100010,0b00100010, 0b00000000,0b00010001,0b00000100,0b00001001, 0b00100000,0b01000100,0b01000100,0b00000000,
 0b00001100,0b00000100,0b00100001,0b11100000, 0b00000000,0b00010010,0b00000100,0b00110001, 0b00011000,0b10001000,0b01000010,0b00000000,
 0b00110000,0b00000010,0b00000000,0b00000000, 0b00000000,0b00010100,0b00000010,0b11000001, 0b00000110,0b10010001,0b11000010,0b00000000
-// 0b00000000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
-// 0b00010000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
-// 0b00001100,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
-// 0b00011000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
+// 0b00000000,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0b00010000,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0b00001100,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0b00011000,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -52,6 +52,9 @@ uint8_t buf[2][BUF_SIZE]={{
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 },{}};
+uint8_t bufi=0,hashi=0;
+uint32_t hash[HASHL]={};
+
 TaskHandle_t *h_flush;
 
 void flush(void *_){
@@ -103,19 +106,20 @@ void dispInit(){
 	xTaskCreateUniversal(flush,"flush",512,NULL,1,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
 
+void lgInit(){
+	for(uint8_t i=0;i<HASHL;++i)hash[i]=i;
+	for(uint8_t i=0;i<BUF_SIZE;++i)buf[bufi][i]=random(0x100);
+}
 
 void setup(){
-	// Serial.begin();
+	randomSeed(analogRead(0));
 	dispInit();
 	delay(3000);
-	randomSeed(analogRead(0));
-	for(uint8_t i=0;i<BUF_SIZE;++i){
-		buf[bufi][i]=random(0x100);
-	}
+	lgInit();
 }
 void loop(){
-	// Serial.printf("hello %d\n",millis());
 	uint8_t bufin=!bufi;
+	hash[hashi]=0;
 	for(uint8_t i=0;i<BUF_SIZE;++i){
 		// buf[bufi][i]=random(0x100);
 
@@ -137,7 +141,16 @@ void loop(){
 			a=a|c<<j;
 		}
 		buf[bufin][i]=a;
+		hash[hashi]=hash[hashi]^(a<<(8*(i%4)));
 	}
 	bufi=bufin;
+
+	for(uint8_t i=0;i<HASHL;++i){
+		if(i!=hashi&&hash[i]==hash[hashi]){
+			delay(3000);
+			lgInit();
+		}
+	}
+	hashi=(hashi+1)%HASHL;
 	delay(50);
 }
