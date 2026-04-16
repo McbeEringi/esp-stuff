@@ -15,8 +15,10 @@
 
 // #define _BV(X) (1<<(X))
 const uint32_t smask=_BV(S0)|_BV(S1)|_BV(S2);
+const uint8_t sum3[]={0,1,1,2,1,2,2,3};
 
-uint8_t buf[BUF_SIZE]={
+uint8_t bufi=0;
+uint8_t buf[2][BUF_SIZE]={{
 0b00000001,0b00000000,0b00000000,0b00000000, 0b00000000,0b00000000,0b00100000,0b00001000, 0b00100010,0b00000000,0b00000010,0b00000000,
 0b10000001,0b00000000,0b00000000,0b01100000, 0b00000000,0b00011100,0b00100000,0b11111111, 0b11111110,0b00111111,0b11111110,0b00000000,
 0b01000001,0b00000000,0b01000000,0b00100000, 0b00000000,0b11110000,0b00100000,0b00001000, 0b00100000,0b00100000,0b01000000,0b00000000,
@@ -33,7 +35,23 @@ uint8_t buf[BUF_SIZE]={
 0b01000010,0b00001000,0b00100010,0b00100010, 0b00000000,0b00010001,0b00000100,0b00001001, 0b00100000,0b01000100,0b01000100,0b00000000,
 0b00001100,0b00000100,0b00100001,0b11100000, 0b00000000,0b00010010,0b00000100,0b00110001, 0b00011000,0b10001000,0b01000010,0b00000000,
 0b00110000,0b00000010,0b00000000,0b00000000, 0b00000000,0b00010100,0b00000010,0b11000001, 0b00000110,0b10010001,0b11000010,0b00000000
-};
+// 0b00000000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
+// 0b00010000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
+// 0b00001100,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
+// 0b00011000,0b00000000,0b00000000,0b00000000, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+// 0,0,0,0, 0,0,0,0, 0,0,0,0,
+},{}};
 TaskHandle_t *h_flush;
 
 void flush(void *_){
@@ -49,9 +67,9 @@ void flush(void *_){
 						sdata=(
 							(i==j)<<S0
 						)|(
-							((buf[o  ]>>_i)&1)<<S1
+							((buf[bufi][o  ]>>_i)&1)<<S1
 						)|(
-							((buf[o+2]>>_i)&1)<<S2
+							((buf[bufi][o+2]>>_i)&1)<<S2
 						);
 
 					GPIO.out_w1tc.val=~sdata&smask;
@@ -63,7 +81,8 @@ void flush(void *_){
 			}
 			GPIO.out_w1tc.val=_BV(RCK);
 			GPIO.out_w1ts.val=_BV(RCK);
-			delayMicroseconds(100);
+			delayMicroseconds(500);
+			// delay(1);
 		}
 	}
 }
@@ -79,19 +98,46 @@ void dispInit(){
 
 	ledcSetup(OE_CH,65536,LEDC_TIMER_8_BIT);ledcAttachPin(OE,OE_CH);
 	ledcWrite(OE_CH,0xff*
-		.9// (sin(millis()/1000.)*.5+.5)
+		.5// (sin(millis()/1000.)*.5+.5)
 	);
 	xTaskCreateUniversal(flush,"flush",512,NULL,1,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
 
 
 void setup(){
-	Serial.begin();
+	// Serial.begin();
 	dispInit();
-	delay(5000);
+	delay(3000);
+	randomSeed(analogRead(0));
+	for(uint8_t i=0;i<BUF_SIZE;++i){
+		buf[bufi][i]=random(0x100);
+	}
 }
 void loop(){
-	Serial.printf("hello %d\n",millis());
-	for(uint8_t i=0;i<BUF_SIZE;++i)buf[i]=random(0x100);
+	// Serial.printf("hello %d\n",millis());
+	uint8_t bufin=!bufi;
+	for(uint8_t i=0;i<BUF_SIZE;++i){
+		// buf[bufi][i]=random(0x100);
+
+		uint16_t tmp[3];
+		uint8_t w=NUM_PANEL*4,h=16,x=i%w,y=i/w,a=0;
+		for(uint8_t j=0;j<3;++j){
+			uint8_t _y=(y+h-1+j)%h*w;
+			tmp[j]=(buf[bufi][(x+w-1)%w+_y]<<12)|(buf[bufi][x+_y]<<4)|(buf[bufi][(x+1)%w+_y]>>4);
+		}
+		for(uint8_t j=0;j<8;++j){
+			uint8_t
+				c=(buf[bufi][i]>>j)&1,
+				score=
+					sum3[(tmp[0]>>(j+3))&0b111]+
+					sum3[(tmp[1]>>(j+3))&0b101]+
+					sum3[(tmp[2]>>(j+3))&0b111];
+
+			c=c?(score<=1||4<=score)?0:c:(score==3)?1:c;
+			a=a|c<<j;
+		}
+		buf[bufin][i]=a;
+	}
+	bufi=bufin;
 	delay(50);
 }
