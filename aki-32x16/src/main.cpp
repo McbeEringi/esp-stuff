@@ -143,7 +143,7 @@ void loop(){
 			a=a|c<<j;
 		}
 		buf[bufin][i]=a;
-		hash[hashi]=((hash[hashi]<<5)|(hash[hashi]>>27))^(a<<(8*(i%4)));
+		hash[hashi]=((hash[hashi]<<5)|(hash[hashi]>>27))^a;
 	}
 	bufi=bufin;
 
