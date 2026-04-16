@@ -52,7 +52,7 @@ uint8_t buf[2][BUF_SIZE]={{
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 },{}};
-uint8_t bufi=0,hashi=0;
+uint8_t bufi=0,hashi=0,rstcnt=0;
 uint32_t hash[HASHL]={};
 
 TaskHandle_t *h_flush;
@@ -107,6 +107,8 @@ void dispInit(){
 }
 
 void lgInit(){
+	rstcnt=0;
+	ledcWrite(OE_CH,0xff*.5);
 	for(uint8_t i=0;i<HASHL;++i)hash[i]=i;
 	for(uint8_t i=0;i<BUF_SIZE;++i)buf[bufi][i]=random(0x100);
 }
@@ -141,14 +143,18 @@ void loop(){
 			a=a|c<<j;
 		}
 		buf[bufin][i]=a;
-		hash[hashi]=hash[hashi]^(a<<(8*(i%4)));
+		hash[hashi]=((hash[hashi]<<5)|(hash[hashi]>>27))^(a<<(8*(i%4)));
 	}
 	bufi=bufin;
 
-	for(uint8_t i=0;i<HASHL;++i){
-		if(i!=hashi&&hash[i]==hash[hashi]){
-			delay(3000);
-			lgInit();
+	if(rstcnt){
+		if(40<++rstcnt)lgInit();
+	}else{
+		for(uint8_t i=0;i<HASHL;++i){
+			if(i!=hashi&&hash[i]==hash[hashi]){
+				++rstcnt;
+				ledcWrite(OE_CH,0xff*.9);
+			}
 		}
 	}
 	hashi=(hashi+1)%HASHL;
