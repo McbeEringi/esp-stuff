@@ -4,7 +4,7 @@
 
 #define NUM_PANEL 3
 #define BUF_SIZE 192 // 16*32*NUM_PAMEL/8
-#define HASHL 8
+#define HASHL (NUM_PANEL*2)
 
 #define S0 4
 #define S1 0
@@ -13,6 +13,8 @@
 #define RCK 6
 #define OE 2
 #define OE_CH 0
+
+#define BTN 9
 
 #define SPIMISO 8
 #define SPICLK 7
@@ -90,11 +92,11 @@ void flush(void *_){
 			GPIO.out_w1tc.val=_BV(RCK);
 			GPIO.out_w1ts.val=_BV(RCK);
 			delayMicroseconds(500);
-			// delay(1);
 		}
 	}
 }
 
+void dispBri(uint8_t x){ledcWrite(OE_CH,0xff-x);}
 void dispInit(){
 	pinMode(S0,OUTPUT);
 	pinMode(S1,OUTPUT);
@@ -105,28 +107,28 @@ void dispInit(){
 	GPIO.out_w1ts.val=_BV(RCK);
 
 	ledcSetup(OE_CH,65536,LEDC_TIMER_8_BIT);ledcAttachPin(OE,OE_CH);
-	ledcWrite(OE_CH,0xff*
-		.5// (sin(millis()/1000.)*.5+.5)
-	);
+	dispBri(0x80);
 	xTaskCreateUniversal(flush,"flush",512,NULL,1,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
 
-void lgInit(){
+void lgInit(bool keep){
 	rstcnt=0;
-	ledcWrite(OE_CH,0xff*.5);
-	for(uint8_t i=0;i<HASHL;++i)hash[i]=i;
-	for(uint8_t i=0;i<BUF_SIZE;++i)buf[bufi][i]=random(0x100);
+	dispBri(0x80);
+	if(!keep)for(uint8_t i=0;i<BUF_SIZE;++i)buf[bufi][i]=random(0x100);
 }
+void lgInit(){lgInit(false);}
 
 void setup(){
 	randomSeed(analogRead(0));
+	pinMode(BTN,INPUT_PULLUP);
 	dispInit();
 	delay(3000);
-	lgInit();
+	lgInit(true);
 }
 void loop(){
+	if(digitalRead(BTN)==LOW){delay(1000);ESP.restart();}
 	uint8_t bufin=!bufi;
-	hash[hashi]=0;
+	uint32_t _hash=0;
 	for(uint8_t i=0;i<BUF_SIZE;++i){
 		// buf[bufi][i]=random(0x100);
 
@@ -148,7 +150,7 @@ void loop(){
 			a=a|c<<j;
 		}
 		buf[bufin][i]=a;
-		hash[hashi]=((hash[hashi]<<5)|(hash[hashi]>>27))^a;
+		_hash=((_hash<<5)|(_hash>>27))^((i<<8)|a);
 	}
 	bufi=bufin;
 
@@ -156,12 +158,13 @@ void loop(){
 		if(40<++rstcnt)lgInit();
 	}else{
 		for(uint8_t i=0;i<HASHL;++i){
-			if(i!=hashi&&hash[i]==hash[hashi]){
+			if(hash[i]==_hash){
 				++rstcnt;
-				ledcWrite(OE_CH,0xff*.9);
+				dispBri(0x20);
 			}
 		}
+		if(hashi%16==0)hash[hashi/16]=_hash;
+		hashi=(hashi+1)%HASHL;
 	}
-	hashi=(hashi+1)%HASHL;
 	delay(50);
 }
