@@ -7,12 +7,17 @@
 #define HASHL 8
 
 #define S0 4
-#define S1 1
+#define S1 0
 #define S2 5
-#define SCK 2
+#define SCK 1
 #define RCK 6
-#define OE 3
+#define OE 2
 #define OE_CH 0
+
+#define SPIMISO 8
+#define SPICLK 7
+#define SPIMOSI 3
+#define SPICS 10
 
 // #define _BV(X) (1<<(X))
 const uint32_t smask=_BV(S0)|_BV(S1)|_BV(S2);
