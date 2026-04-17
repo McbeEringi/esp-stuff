@@ -126,7 +126,7 @@ void setup(){
 	lgInit(true);
 }
 void loop(){
-	if(digitalRead(BTN)==LOW){delay(1000);ESP.restart();}
+	if(digitalRead(BTN)==LOW)++rstcnt;
 	uint8_t bufin=!bufi;
 	uint32_t _hash=0;
 	for(uint8_t i=0;i<BUF_SIZE;++i){
@@ -155,13 +155,11 @@ void loop(){
 	bufi=bufin;
 
 	if(rstcnt){
+		dispBri(0x20);
 		if(40<++rstcnt)lgInit();
 	}else{
 		for(uint8_t i=0;i<HASHL;++i){
-			if(hash[i]==_hash){
-				++rstcnt;
-				dispBri(0x20);
-			}
+			if(hash[i]==_hash)++rstcnt;
 		}
 		if(hashi%16==0)hash[hashi/16]=_hash;
 		hashi=(hashi+1)%HASHL;
