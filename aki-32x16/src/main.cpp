@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <driver/ledc.h>
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 
 
 #define NUM_PANEL 3
@@ -25,7 +28,7 @@
 const uint32_t smask=_BV(S0)|_BV(S1)|_BV(S2);
 const uint8_t sum3[]={0,1,1,2,1,2,2,3};
 
-uint8_t buf[2][BUF_SIZE]={{
+uint8_t buf[BUF_SIZE]={
 0b00000001,0b00000000,0b00000000,0b00000000, 0b00000000,0b00000000,0b00100000,0b00001000, 0b00100010,0b00000000,0b00000010,0b00000000,
 0b10000001,0b00000000,0b00000000,0b01100000, 0b00000000,0b00011100,0b00100000,0b11111111, 0b11111110,0b00111111,0b11111110,0b00000000,
 0b01000001,0b00000000,0b01000000,0b00100000, 0b00000000,0b11110000,0b00100000,0b00001000, 0b00100000,0b00100000,0b01000000,0b00000000,
@@ -58,8 +61,8 @@ uint8_t buf[2][BUF_SIZE]={{
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
 // 0,0,0,0, 0,0,0,0, 0,0,0,0,
-},{}};
-uint8_t bufi=0,hashi=0,rstcnt=0;
+};
+uint8_t hashi=0,rstcnt=0;
 uint32_t hash[HASHL]={};
 
 TaskHandle_t *h_flush;
@@ -77,9 +80,9 @@ void flush(void *_){
 						sdata=(
 							(i==j)<<S0
 						)|(
-							((buf[bufi][o  ]>>_i)&1)<<S1
+							((buf[o  ]>>_i)&1)<<S1
 						)|(
-							((buf[bufi][o+2]>>_i)&1)<<S2
+							((buf[o+2]>>_i)&1)<<S2
 						);
 
 					GPIO.out_w1tc.val=~sdata&smask;
@@ -111,52 +114,61 @@ void dispInit(){
 	xTaskCreateUniversal(flush,"flush",512,NULL,1,h_flush,CONFIG_ARDUINO_RUNNING_CORE);
 }
 
-void lgInit(bool keep){
+void golInit(bool keep){
 	rstcnt=0;
 	dispBri(0x80);
-	if(!keep)for(uint8_t i=0;i<BUF_SIZE;++i)buf[bufi][i]=random(0x100);
+	if(!keep)for(uint8_t i=0;i<BUF_SIZE;++i)buf[i]=random(0x100);
 }
-void lgInit(){lgInit(false);}
-
-void setup(){
-	randomSeed(analogRead(0));
-	pinMode(BTN,INPUT_PULLUP);
-	dispInit();
-	delay(3000);
-	lgInit(true);
-}
-void loop(){
-	if(digitalRead(BTN)==LOW)++rstcnt;
-	uint8_t bufin=!bufi;
+void golInit(){golInit(false);}
+uint32_t gol(){
+	uint8_t _buf[BUF_SIZE];
 	uint32_t _hash=0;
+	memcpy(_buf,buf,BUF_SIZE);
 	for(uint8_t i=0;i<BUF_SIZE;++i){
-		// buf[bufi][i]=random(0x100);
-
-		uint16_t tmp[3];
+		uint32_t tmp=0;
 		uint8_t w=NUM_PANEL*4,h=16,x=i%w,y=i/w,a=0;
 		for(uint8_t j=0;j<3;++j){
 			uint8_t _y=(y+h-1+j)%h*w;
-			tmp[j]=(buf[bufi][(x+w-1)%w+_y]<<12)|(buf[bufi][x+_y]<<4)|(buf[bufi][(x+1)%w+_y]>>4);
+			tmp=tmp|((((_buf[(x+w-1)%w+_y]<<9)|(_buf[x+_y]<<1)|(_buf[(x+1)%w+_y]>>7))&0x3ff)<<(10*j));
 		}
 		for(uint8_t j=0;j<8;++j){
 			uint8_t
-				c=(buf[bufi][i]>>j)&1,
+				c=(_buf[i]>>j)&1,
 				score=
-					sum3[(tmp[0]>>(j+3))&0b111]+
-					sum3[(tmp[1]>>(j+3))&0b101]+
-					sum3[(tmp[2]>>(j+3))&0b111];
+					sum3[(tmp>>j)&0b111]+
+					sum3[(tmp>>(j+10))&0b101]+
+					sum3[(tmp>>(j+20))&0b111];
 
 			c=c?(score<=1||4<=score)?0:c:(score==3)?1:c;
 			a=a|c<<j;
 		}
-		buf[bufin][i]=a;
+		buf[i]=a;
 		_hash=((_hash<<5)|(_hash>>27))^((i<<8)|a);
 	}
-	bufi=bufin;
+	return _hash;
+}
+
+void setup(){
+	randomSeed(analogRead(0));
+	SPI.begin(SPICLK,SPIMISO,SPIMOSI,SPICS);
+	SD.begin(SPICS);
+	File f=SD.open("/hello.txt",FILE_WRITE);
+	if(f){
+		f.printf("hello world!\nこんにちは世界!");
+		f.close();
+	}
+	pinMode(BTN,INPUT_PULLUP);
+	dispInit();
+	delay(3000);
+	golInit(true);
+}
+void loop(){
+	if(digitalRead(BTN)==LOW)++rstcnt;
+	uint32_t _hash=gol();
 
 	if(rstcnt){
 		dispBri(0x20);
-		if(40<++rstcnt)lgInit();
+		if(40<++rstcnt)golInit();
 	}else{
 		for(uint8_t i=0;i<HASHL;++i){
 			if(hash[i]==_hash)++rstcnt;
@@ -164,5 +176,6 @@ void loop(){
 		if(hashi%16==0)hash[hashi/16]=_hash;
 		hashi=(hashi+1)%HASHL;
 	}
+
 	delay(50);
 }
