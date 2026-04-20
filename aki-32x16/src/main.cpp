@@ -293,7 +293,6 @@ void setup(){
 	pinMode(BTN,INPUT_PULLUP);
 	dispInit();
 	delay(1000);
-	gol();
 	for(uint16_t i=0;i<NUM_PANEL*32*4;++i){
 		scrollX();scrollY();
 		delay(20);
