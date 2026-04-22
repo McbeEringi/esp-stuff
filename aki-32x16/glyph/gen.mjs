@@ -106,7 +106,7 @@ w=(await[
 		)
 	),0),
 	a
-),[],console.log('render...\n'))).sort(),
+),[],console.log('gen: render...\n'))).sort(),
 f=(s=>({
 	write:x=>new Promise(f=>s.write(x,f)),
 	end:_=>new Promise(f=>s.end(f))
@@ -120,25 +120,25 @@ le1624=(x,y)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y
 
 // console.log(w);
 
-console.log('index size...');
+console.log('gen: index size...');
 await f.write(le24((2+3)*w.length));
 
-console.log('index...');
+console.log('gen: index...');
 await w.reduce(async(a,x)=>(
 	a=await a,
 	await f.write(le1624(x.cp,a)),
 	a+x.file.size,
 ),3+(2+3)*w.length);
 
-console.log('data...\n');
+console.log('gen: data...\n');
 await w.reduce(async(a,x)=>(
 	await a,
-	console.log(`\x1b[1A${x.file.name}`),
+	console.log(`\x1b[1A${x.name}`),
 	await f.write(await x.file.bytes())
 ),0)
 
 f.end();
 await Bun.$`rm -rf ${dst}.part`;
-console.log('done!');
+console.log('gen: done!');
 
 

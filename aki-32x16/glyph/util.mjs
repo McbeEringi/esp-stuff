@@ -5,7 +5,7 @@ family=async w=>(x=>(console.log(`using "${x}"`),{raw:x,ns:x.replace(/\s/g,'')})
 ),
 reader=async src=>(
 	src=await(async f=>await f.exists()?f:(
-		await Bun.$`./glyph.mjs '${src.raw}'`,Bun.file(f.name)
+		await Bun.$`./gen.mjs '${src.raw}'`,Bun.file(f.name)
 	))(Bun.file(`${src.ns}.font`)),
 	(d=>Object.assign(
 		async(x,{

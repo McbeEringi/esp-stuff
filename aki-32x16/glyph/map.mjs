@@ -11,7 +11,7 @@ c=createCanvas(256*size,256*size),
 ctx=c.getContext('2d');
 
 
-console.log('render...\n');
+console.log('map: render...\n');
 
 ctx.fillStyle="#fff2";
 [...Array(256)].forEach((_,i)=>(
@@ -42,6 +42,6 @@ await Object.keys(get.d).reduce(async(a,x)=>(
 	a
 ),0);
 
-console.log('export...');
+console.log('map: export...');
 await Bun.write(dst,await c.encode('png'));
-console.log('done!');
+console.log('map: done!');
