@@ -4,7 +4,7 @@ import{open}from'node:fs/promises';
 
 const
 size=16,
-ffam=(x=>(console.log(x),x))(
+ffam=(x=>(console.log(`using "${x}"`),x))(
 	await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text()
 ),
 dst=`${ffam.replace(/\s/g,'')}.font`,
@@ -84,6 +84,7 @@ w=(await[
 		x.name=x.cp.toString(16).padStart(4,0),
 		x.file=Bun.file(`${dst}.part/${x.name}`),
 		await x.file.exists()||(
+			console.log(`\x1b[1A${x.name}`),
 			a.push(x),
 			ctx.fillStyle='#000',
 			ctx.fillRect(0,-size,c.height,c.width),
@@ -107,7 +108,7 @@ w=(await[
 		)
 	),0),
 	a
-),[])).sort(),
+),[],console.log('render...\n'))).sort(),
 f=(s=>({
 	write:x=>new Promise(f=>s.write(x,f)),
 	end:_=>new Promise(f=>s.end(f))
