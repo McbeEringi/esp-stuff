@@ -1,13 +1,12 @@
 #!/bin/env bun
-import{createCanvas,GlobalFonts}from'@napi-rs/canvas';
+import{createCanvas}from'@napi-rs/canvas';
 import{open}from'node:fs/promises';
+import{family}from'./util.mjs';
 
 const
 size=16,
-ffam=(x=>(console.log(`using "${x}"`),x))(
-	await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text()
-),
-dst=`${ffam.replace(/\s/g,'')}.font`,
+ffam=await family(Bun.argv[2]),
+dst=`${ffam.ns}.font`,
 range_sjis=w=>(tds=>w.map(([s,e,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map(
 		(_,i)=>s+i
@@ -62,7 +61,7 @@ w=(await[
 		c=createCanvas(size,size*(w.hankaku?.5:1)),
 		ctx=(ctx=>(
 			ctx.textBaseline='top',
-			ctx.font=`${size}px ${ffam}`,
+			ctx.font=`${size}px ${ffam.raw}`,
 				ctx.rotate(Math.PI/2),
 			(({
 				actualBoundingBoxDescent:d,
@@ -70,7 +69,7 @@ w=(await[
 				// fontBoundingBoxDescent:d,
 				// fontBoundingBoxAscent:a
 			})=>(
-				ctx.font=`${size/(d-a)*size}px ${ffam}`
+				ctx.font=`${size/(d-a)*size}px ${ffam.raw}`
 			))(ctx.measureText(w.join(''))),
 			ctx
 		))(c.getContext('2d'))
