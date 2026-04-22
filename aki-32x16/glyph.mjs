@@ -2,13 +2,11 @@
 import{createCanvas,GlobalFonts}from'@napi-rs/canvas';
 
 const
-family=Bun.argv[2]??'sansserif',
-size=32,
-pfam=await Bun.$`fc-match -f"%{family}" ${family}`.text(),
-ctx=createCanvas(32,32).getContext('2d'),
-x='jp',
-tds=new TextDecoder('sjis'),
-range_sjis=w=>w.map(([s,e,o={}])=>Object.assign(
+dir='font',
+type='pbm',
+size=16,
+ffam=await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text(),
+range_sjis=w=>(tds=>w.map(([s,e,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map(
 		(_,i)=>s+i
 	).filter(
@@ -21,14 +19,15 @@ range_sjis=w=>w.map(([s,e,o={}])=>Object.assign(
 		x=>x.length==1&&x!='\ufffd'
 	)],
 	o
-)),
+)))(new TextDecoder('sjis')),
 range=w=>w.map(([s,e,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map((_,i)=>String.fromCodePoint(s+i))],
 	o
 ));
 
 
-console.log(pfam);
+console.log(ffam);
+await Bun.$`rm -rf ${dir}`;
 
 await Promise.all([
 	...range_sjis([
@@ -62,16 +61,12 @@ await Promise.all([
 	ctx=await ctx,
 	x={x},
 	x.cp=x.x.codePointAt().toString(16).padStart(4,0),
-	x.type='pbm',
-	x.file=Bun.file(`font/${x.cp}.${x.type}`),
+	x.file=Bun.file(`${dir}/${x.cp}.${type}`),
 	await x.file.exists()||(
-		// w.decender&&(),
 		ctx.fillStyle='#000',
-		ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height),
+		ctx.fillRect(0,-size,ctx.canvas.height,ctx.canvas.width),
 		ctx.fillStyle='#fff',
-		ctx.rotate(Math.PI/2),
-		ctx.fillText(x.x,0,-16),
-		ctx.rotate(-Math.PI/2),
+		ctx.fillText(x.x,0,-size,ctx.canvas.height),
 		await({
 			pbm:async()=>(
 				x.bin=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height),
@@ -82,20 +77,23 @@ await Promise.all([
 						i%8?(a[a.length-1]|=x<<(7-i%8)):a.push(x<<7),
 						a
 					),[]),
-				await Bun.write(x.file,new Blob(['P4 16 16\n',new Uint8Array(x.bin)]))
+				await Bun.write(x.file,new Blob([`P4 ${ctx.canvas.width} ${(''+ctx.canvas.height).padStart(2)}\n`,new Uint8Array(x.bin)]))
 			),
-			png:async()=>await Bun.write(x.file,await ctx.canvas.encode(x.type))
-		}[x.type])()
+			png:async()=>await Bun.write(x.file,await ctx.canvas.encode(type))
+		}[type])()
 	),
 	ctx
 ),(ctx=>(
 	ctx.textBaseline='top',
-	ctx.font=`16px ${pfam}`,
+	ctx.font=`${size}px ${ffam}`,
+		ctx.rotate(Math.PI/2),
 	(({
 		actualBoundingBoxDescent:d,
 		actualBoundingBoxAscent:a
+		// fontBoundingBoxDescent:d,
+		// fontBoundingBoxAscent:a
 	})=>(
-		ctx.font=`${16/(d-a)*16}px ${pfam}`
+		ctx.font=`${size/(d-a)*size}px ${ffam}`
 	))(ctx.measureText(w.join(''))),
 	ctx
-))(createCanvas(16,16).getContext('2d')))));
+))(createCanvas(size,size*(w.hankaku?.5:1)).getContext('2d')))));
