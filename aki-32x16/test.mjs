@@ -6,6 +6,7 @@ td=new TextDecoder(),
 ffam=(x=>(console.log(`using "${x}"`),x))(
 	await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text()
 ),
+dst=`${ffam.replace(/\s/g,'')}.test.png`,
 src=Bun.file(`${ffam.replace(/\s/g,'')}.font`),
 
 d=(await src.slice(
@@ -51,4 +52,4 @@ w=await w[Symbol.iterator]().reduce(async(a,x)=>(
 w=[...Array(w[0].length)[Symbol.iterator]().map((_,i)=>w.map(x=>x[w[0].length-1-i]).join(''))];
 // console.log(w.join('\n'));
 
-await Bun.write('test.png',png({data:[...w.join('')].map(x=>+x),width:w[0].length,height:w.length,palette:[0x222222,0xff0000]}).toBlob());
+await Bun.write(dst,png({data:[...w.join('')].map(x=>+x),width:w[0].length,height:w.length,palette:[0x222222,0xff0000]}).toBlob());
