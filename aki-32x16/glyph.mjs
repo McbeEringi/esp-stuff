@@ -1,10 +1,9 @@
 #!/bin/env bun
 import{createCanvas}from'@napi-rs/canvas';
 import{open}from'node:fs/promises';
-import{family}from'./util.mjs';
+import{size,family}from'./util.mjs';
 
 const
-size=16,
 ffam=await family(Bun.argv[2]),
 dst=`${ffam.ns}.font`,
 range_sjis=w=>(tds=>w.map(([s,e,o={}])=>Object.assign(

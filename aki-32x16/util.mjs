@@ -1,10 +1,12 @@
 const
+size=16,// max 16
 family=async w=>(x=>(console.log(`using "${x}"`),{raw:x,ns:x.replace(/\s/g,'')}))(
 	(await Bun.$`fc-match -f"%{family}" ${w}`.text()).split(',').filter(x=>!x.match(/[^\w\s]/)).sort((a,b)=>b.length-a.length).pop()
 ),
 reader=async src=>(
-	src=Bun.file(`${src.ns}.font`),
-	await src.exists()||(await Bun.$`./glyph.mjs`,src=Bun.file(src.name)),
+	src=await(async f=>await f.exists()?f:(
+		await Bun.$`./glyph.mjs '${src.raw}'`,Bun.file(f.name)
+	))(Bun.file(`${src.ns}.font`)),
 	(d=>Object.assign(
 		async(x,{
 			w,h
@@ -34,4 +36,4 @@ reader=async src=>(
 	)
 );
 
-export{family,reader};
+export{size,family,reader};

@@ -1,13 +1,13 @@
 #!/bin/env bun
 import{createCanvas,ImageData}from'@napi-rs/canvas';
-import{family,reader}from'./util.mjs';
+import{size,family,reader}from'./util.mjs';
 
 const
 ffam=await family(Bun.argv[2]),
 dst=`${ffam.ns}.map.png`,
 get=await reader(ffam),
 
-c=createCanvas(4096,4096),
+c=createCanvas(256*size,256*size),
 ctx=c.getContext('2d');
 
 
@@ -15,8 +15,8 @@ console.log('render...\n');
 
 ctx.fillStyle="#fff2";
 [...Array(256)].forEach((_,i)=>(
-	i=[i/16|0,i%16],
-	((i[0]^i[1])&1)&&ctx.fillRect(...i.map(x=>x*256),256,256)
+	i=[i/16|0,i%16,1,1],
+	((i[0]^i[1])&1)&&ctx.fillRect(...i.map(x=>x*16*size))
 ));
 
 await Object.keys(get.d).reduce(async(a,x)=>(
@@ -36,8 +36,8 @@ await Object.keys(get.d).reduce(async(a,x)=>(
 	),x.h,x.w),
 	ctx.putImageData(
 		x.img,
-		((x.i>>>8)&15)*256+(x.i&15)*16,
-		(x.i>>>12)*256+((x.i>>>4)&15)*16
+		(((x.i>>>8)&15)*16+(x.i&15))*size,
+		((x.i>>>12)*16+((x.i>>>4)&15))*size
 	),
 	a
 ),0);
