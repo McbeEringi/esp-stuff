@@ -1,11 +1,13 @@
 #!/bin/env bun
 import{createCanvas,GlobalFonts}from'@napi-rs/canvas';
+import{open}from'node:fs/promises';
 
 const
-dir='font',
-type='pbm',
 size=16,
-ffam=await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text(),
+ffam=(x=>(console.log(x),x))(
+	await Bun.$`fc-match -f"%{family}" ${Bun.argv[2]}`.text()
+),
+dst=`${ffam.replace(/\s/g,'')}.font`,
 range_sjis=w=>(tds=>w.map(([s,e,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map(
 		(_,i)=>s+i
@@ -23,13 +25,9 @@ range_sjis=w=>(tds=>w.map(([s,e,o={}])=>Object.assign(
 range=w=>w.map(([s,e,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map((_,i)=>String.fromCodePoint(s+i))],
 	o
-));
+)),
 
-
-console.log(ffam);
-await Bun.$`rm -rf ${dir}`;
-
-await Promise.all([
+w=(await[
 	...range_sjis([
 		[0x20,0x7e,{hankaku:true,descender:true}],// alphanum
 		[0xa1,0xdf,{hankaku:true}],// kata
@@ -57,43 +55,91 @@ await Promise.all([
 	...range([
 		[0x00c0,0x02af,{hankaku:true}],// latin-ext
 	])
-].map(w=>w.reduce(async(ctx,x)=>(
-	ctx=await ctx,
-	x={x},
-	x.cp=x.x.codePointAt().toString(16).padStart(4,0),
-	x.file=Bun.file(`${dir}/${x.cp}.${type}`),
-	await x.file.exists()||(
-		ctx.fillStyle='#000',
-		ctx.fillRect(0,-size,ctx.canvas.height,ctx.canvas.width),
-		ctx.fillStyle='#fff',
-		ctx.fillText(x.x,0,-size,ctx.canvas.height),
-		await({
-			pbm:async()=>(
-				x.bin=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height),
-				x.bin=x.bin.data[Symbol.iterator]()
-					.filter((_,i)=>!(i%4))
-					.reduce((a,x,i)=>(
-						x=127<x,
-						i%8?(a[a.length-1]|=x<<(7-i%8)):a.push(x<<7),
-						a
-					),[]),
-				await Bun.write(x.file,new Blob([`P4 ${ctx.canvas.width} ${(''+ctx.canvas.height).padStart(2)}\n`,new Uint8Array(x.bin)]))
+].reduce(async(
+	a,
+	w,
+	{
+		c=createCanvas(size,size*(w.hankaku?.5:1)),
+		ctx=(ctx=>(
+			ctx.textBaseline='top',
+			ctx.font=`${size}px ${ffam}`,
+				ctx.rotate(Math.PI/2),
+			(({
+				actualBoundingBoxDescent:d,
+				actualBoundingBoxAscent:a
+				// fontBoundingBoxDescent:d,
+				// fontBoundingBoxAscent:a
+			})=>(
+				ctx.font=`${size/(d-a)*size}px ${ffam}`
+			))(ctx.measureText(w.join(''))),
+			ctx
+		))(c.getContext('2d'))
+	},
+)=>(
+	a=await a,
+	await w.reduce(async(b,x)=>(
+		await b,
+		x=new String(x),
+		x.cp=x.codePointAt(),
+		x.name=x.cp.toString(16).padStart(4,0),
+		x.file=Bun.file(`${dst}.part/${x.name}`),
+		await x.file.exists()||(
+			a.push(x),
+			ctx.fillStyle='#000',
+			ctx.fillRect(0,-size,c.height,c.width),
+			ctx.fillStyle='#fff',
+			ctx.fillText(x,0,-size,c.height),
+
+			await Bun.write(
+				x.file,
+				new Uint8Array([
+					((c.width-1)<<4)|((c.height-1)&15),
+					...ctx.getImageData(0,0,c.width,c.height).data[Symbol.iterator]()
+						.filter((_,i)=>!(i%4))
+						.reduce((a,x,i)=>(
+							x=127<x,
+							i%8?(a[a.length-1]|=x<<(7-i%8)):a.push(x<<7),
+							a
+						),[])
+				])
 			),
-			png:async()=>await Bun.write(x.file,await ctx.canvas.encode(type))
-		}[type])()
-	),
-	ctx
-),(ctx=>(
-	ctx.textBaseline='top',
-	ctx.font=`${size}px ${ffam}`,
-		ctx.rotate(Math.PI/2),
-	(({
-		actualBoundingBoxDescent:d,
-		actualBoundingBoxAscent:a
-		// fontBoundingBoxDescent:d,
-		// fontBoundingBoxAscent:a
-	})=>(
-		ctx.font=`${size/(d-a)*size}px ${ffam}`
-	))(ctx.measureText(w.join(''))),
-	ctx
-))(createCanvas(size,size*(w.hankaku?.5:1)).getContext('2d')))));
+			x.file=Bun.file(x.file.name)
+		)
+	),0),
+	a
+),[])).sort(),
+f=(s=>({
+	write:x=>new Promise(f=>s.write(x,f)),
+	end:_=>new Promise(f=>s.end(f))
+}))((
+	await Bun.write(dst,''),
+	await open(dst,{flags:'a'})
+).createWriteStream()),
+le24=x=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(x>>>16)&255]),
+le1624=(x,y)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y>>>16)&255]);
+
+
+// console.log(w);
+
+console.log('index size...');
+await f.write(le24((2+3)*w.length));
+
+console.log('index...');
+await w.reduce(async(a,x)=>(
+	a=await a,
+	await f.write(le1624(x.cp,a)),
+	a+x.file.size,
+),3+(2+3)*w.length);
+
+console.log('data...\n');
+await w.reduce(async(a,x)=>(
+	await a,
+	console.log(`\x1b[1A${x.file.name}`),
+	await f.write(await x.file.bytes())
+),0)
+
+f.end();
+await Bun.$`rm -rf ${dst}.part`;
+console.log('done!');
+
+
