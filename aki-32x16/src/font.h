@@ -1,12 +1,11 @@
 typedef struct{
 	uint16_t i;
 	uint32_t x;
-	uint8_t y;
-}u16328_t;
+}u1632_t;
 
 File font;
 uint16_t ftsize;
-u16328_t *ft=NULL;
+u1632_t *ft=NULL;
 
 void fontInit(const char* path){
 	font=SD.open(path);
@@ -15,11 +14,10 @@ void fontInit(const char* path){
 	font.read((uint8_t*)&size,3);
 	ftsize=size/6;
 	if(ft)free(ft);
-	ft=(u16328_t*)calloc(ftsize,sizeof(u16328_t));
+	ft=(u1632_t*)calloc(ftsize,sizeof(u1632_t));
 	for(uint16_t i=0;i<ftsize;++i){
 		font.read((uint8_t*)&ft[i].i,2);
-		font.read((uint8_t*)&ft[i].x,3);
-		font.read((uint8_t*)&ft[i].y,1);
+		font.read((uint8_t*)&ft[i].x,4);
 	}
 }
 uint8_t drawFont(uint16_t cp,uint8_t o){
@@ -31,10 +29,10 @@ uint8_t drawFont(uint16_t cp,uint8_t o){
 		else if(ft[m].i>cp)R=m-1;
 		else break;
 	}
-	font.seek(ft[m].x);
+	font.seek(ft[m].x&0xffffff);
 	uint8_t
-		w=(ft[m].y>>4)+1,
-		h=(ft[m].y&15)+1;
+		w=((ft[m].x>>24)>>4)+1,
+		h=((ft[m].x>>24)&15)+1;
 	font.read(buf+o*2,(w*h+7)/8);
 	return h;
 }
