@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <driver/ledc.h>
 #include "FS.h"
 #include "SD.h"
@@ -281,17 +280,72 @@ uint32_t gol(){
 	return _hash;
 }
 
+typedef struct{
+	uint16_t i;
+	uint32_t x;
+}u1632_t;
+
+File font;
+uint16_t ftsize;
+u1632_t *ft=NULL;
+
+typedef struct{
+	uint8_t w;
+	uint8_t h;
+	uint8_t l;
+	uint8_t *data;
+}glyph_t;
+
+void fontInit(const char* path){
+	font=SD.open(path);
+	if(!font)return;
+	uint32_t size=0;
+	font.read((uint8_t*)&size,3);
+	ftsize=size/5;
+	if(ft)free(ft);
+	ft=(u1632_t*)calloc(ftsize,sizeof(u1632_t));
+	for(uint16_t i=0;i<ftsize;++i){
+		font.read((uint8_t*)&ft[i].i,2);
+		font.read((uint8_t*)&ft[i].x,3);
+	}
+}
+glyph_t *getFont(uint16_t cp){
+	uint16_t L=0,R=ftsize-1,m;
+	while(1){
+		if(R<L)return NULL;
+		m=L+(R-L)/2;
+		if(ft[m].i<cp)L=m+1;
+		else if(ft[m].i>cp)R=m-1;
+		else break;
+	}
+	font.seek(ft[m].x);
+	glyph_t *g=(glyph_t*)malloc(sizeof(glyph_t));
+	{
+		uint8_t x=font.read();
+		g->w=(x>>4)+1;
+		g->h=(x&15)+1;
+		g->l=(g->w*g->h+7)/8;
+		g->data=(uint8_t*)malloc(g->l);
+		font.read(g->data,g->l);
+	}
+	return g;
+}
+
 void setup(){
 	randomSeed(analogRead(0));
 	SPI.begin(SPICLK,SPIMISO,SPIMOSI,SPICS);
 	SD.begin(SPICS);
-	File f=SD.open("/hello.txt",FILE_WRITE);
-	if(f){
-		f.printf("hello world!\nこんにちは世界!");
-		f.close();
-	}
 	pinMode(BTN,INPUT_PULLUP);
 	dispInit();
+	fontInit("/NotoSansCJKJP.font");
+	for(uint8_t i=0;i<6;++i){
+		glyph_t *x=getFont(((uint16_t[]){0x5de5,0x5b66,0x7814,0x7a76,0x90e8,0xff01})[i]);
+		if(x){
+			memcpy(buf+32*i,x->data,x->l);
+			free(x->data);
+			free(x);
+		}
+	}
 	delay(1000);
 	for(uint16_t i=0;i<NUM_PANEL*32*4;++i){
 		scrollX();scrollY();
