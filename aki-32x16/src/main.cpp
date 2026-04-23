@@ -253,11 +253,6 @@ uint32_t gol(){
 	memcpy(_buf,buf,BUF_SIZE);
 	for(uint8_t i=0;i<BUF_SIZE;++i){
 		uint32_t tmp=0;
-		// uint8_t w=NUM_PANEL*4,h=16,x=i%w,y=i/w,a=0;
-		// for(uint8_t j=0;j<3;++j){
-		// 	uint8_t _y=(y+h-1+j)%h*w;
-		// 	tmp=tmp|((((_buf[(x+w-1)%w+_y]<<9)|(_buf[x+_y]<<1)|(_buf[(x+1)%w+_y]>>7))&0x3ff)<<(10*j));
-		// }
 		uint8_t w=NUM_PANEL*32,h=2,x=i/h,y=i%h,a=0;
 		for(uint8_t j=0;j<3;++j){
 			uint8_t _x=(x+w-1+j)%w*h;
@@ -283,11 +278,12 @@ uint32_t gol(){
 typedef struct{
 	uint16_t i;
 	uint32_t x;
-}u1632_t;
+	uint8_t y;
+}u16328_t;
 
 File font;
 uint16_t ftsize;
-u1632_t *ft=NULL;
+u16328_t *ft=NULL;
 
 typedef struct{
 	uint8_t w;
@@ -301,12 +297,13 @@ void fontInit(const char* path){
 	if(!font)return;
 	uint32_t size=0;
 	font.read((uint8_t*)&size,3);
-	ftsize=size/5;
+	ftsize=size/6;
 	if(ft)free(ft);
-	ft=(u1632_t*)calloc(ftsize,sizeof(u1632_t));
+	ft=(u16328_t*)calloc(ftsize,sizeof(u16328_t));
 	for(uint16_t i=0;i<ftsize;++i){
 		font.read((uint8_t*)&ft[i].i,2);
 		font.read((uint8_t*)&ft[i].x,3);
+		font.read((uint8_t*)&ft[i].y,1);
 	}
 }
 glyph_t *getFont(uint16_t cp){
@@ -321,9 +318,8 @@ glyph_t *getFont(uint16_t cp){
 	font.seek(ft[m].x);
 	glyph_t *g=(glyph_t*)malloc(sizeof(glyph_t));
 	{
-		uint8_t x=font.read();
-		g->w=(x>>4)+1;
-		g->h=(x&15)+1;
+		g->w=(ft[m].y>>4)+1;
+		g->h=(ft[m].y&15)+1;
 		g->l=(g->w*g->h+7)/8;
 		g->data=(uint8_t*)malloc(g->l);
 		font.read(g->data,g->l);
@@ -346,19 +342,14 @@ void setup(){
 			free(x);
 		}
 	}
-	delay(1000);
-	for(uint16_t i=0;i<NUM_PANEL*32*4;++i){
-		scrollX();scrollY();
-		delay(20);
-	}
-	delay(500);
-	for(uint16_t i=0;i<NUM_PANEL*32*4;++i){
-		scrollX(true);scrollY(true);
-		delay(20);
+	delay(2000);
+	for(uint16_t i=0;i<16*2;++i){
+		scrollY();
+		delay(200);
 	}
 	for(uint16_t i=0;i<NUM_PANEL*32*8;++i){
 		scrollX();
-		delay(10);
+		delay(100);
 	}
 	delay(500);
 	golInit(true);

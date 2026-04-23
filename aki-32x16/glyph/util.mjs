@@ -11,13 +11,9 @@ reader=async src=>(
 		async(x,{
 			w,h
 		}={})=>(x=d[x])&&(
-			(x=>(
-				w=(x>>4)+1,
-				h=(x&15)+1
-			))((await src.slice(x,++x).bytes())[0]),
 			{
-				w,h,
-				bin:await src.slice(x,x+Math.ceil(w*h/8)).bytes()
+				w:x.w,h:x.h,
+				bin:await src.slice(x.o,x.o+Math.ceil(x.w*x.h/8)).bytes()
 			}
 		),
 		{d}
@@ -27,12 +23,13 @@ reader=async src=>(
 			3+(await src.slice(0,3).bytes()).reduce((a,x,i)=>a|(x<<(8*i)),0)
 		).bytes()).reduce((a,x,i)=>([
 			_=>a.i=x,_=>a.i|=x<<8,
-			_=>a.x=x,_=>a.x|=x<<8,
+			_=>a.o=x,_=>a.o|=x<<8,_=>a.o|=x<<16,
 			_=>(
-				a.x|=x<<16,
-				a.a[String.fromCodePoint(a.i)]=a.x
+				a.w=(x>>4)+1,
+				a.h=(x&15)+1,
+				a.a[String.fromCodePoint(a.i)]={o:a.o,w:a.w,h:a.h}
 			)
-		][i%5](),a),{a:{}}).a
+		][i%6](),a),{a:{}}).a
 	)
 );
 

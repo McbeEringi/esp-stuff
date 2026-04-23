@@ -81,6 +81,7 @@ w=(await[
 		x.cp=x.codePointAt(),
 		x.name=x.cp.toString(16).padStart(4,0),
 		x.file=Bun.file(`${dst}.part/${x.name}`),
+		x.size=((c.width-1)<<4)|((c.height-1)&15),
 		await x.file.exists()||(
 			console.log(`\x1b[1A${x.name}`),
 			a.push(x),
@@ -92,7 +93,6 @@ w=(await[
 			await Bun.write(
 				x.file,
 				new Uint8Array([
-					((c.width-1)<<4)|((c.height-1)&15),
 					...ctx.getImageData(0,0,c.width,c.height).data[Symbol.iterator]()
 						.filter((_,i)=>!(i%4))
 						.reduce((a,x,i)=>(
@@ -115,20 +115,20 @@ f=(s=>({
 	await open(dst,{flags:'a'})
 ).createWriteStream()),
 le24=x=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(x>>>16)&255]),
-le1624=(x,y)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y>>>16)&255]);
+le16248=(x,y,z)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y>>>16)&255,z&255]);
 
 
 // console.log(w);
 
 console.log('gen: index size...');
-await f.write(le24((2+3)*w.length));
+await f.write(le24((2+3+1)*w.length));
 
 console.log('gen: index...');
 await w.reduce(async(a,x)=>(
 	a=await a,
-	await f.write(le1624(x.cp,a)),
+	await f.write(le16248(x.cp,a,x.size)),
 	a+x.file.size,
-),3+(2+3)*w.length);
+),3+(2+3+1)*w.length);
 
 console.log('gen: data...\n');
 await w.reduce(async(a,x)=>(
