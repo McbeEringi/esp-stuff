@@ -20,19 +20,24 @@ void fontInit(const char* path){
 		font.read((uint8_t*)&ft[i].x,4);
 	}
 }
-uint8_t drawFont(uint16_t cp,uint8_t o){
+uint32_t ftx(uint16_t cp){
 	uint16_t L=0,R=ftsize-1,m;
 	while(1){
 		if(R<L)return 0;
 		m=L+(R-L)/2;
 		if(ft[m].i<cp)L=m+1;
 		else if(ft[m].i>cp)R=m-1;
-		else break;
+		else return ft[m].x;
 	}
-	font.seek(ft[m].x&0xffffff);
+}
+uint8_t drawFont(uint16_t cp,uint8_t o){
+	uint32_t x=ftx(cp);
+	if(!x)return 0;
+	font.seek(x&0xffffff);
+	x=x>>24;
 	uint8_t
-		w=((ft[m].x>>24)>>4)+1,
-		h=((ft[m].x>>24)&15)+1;
+		w=(x>>4)+1,
+		h=(x&15)+1;
 	font.read(buf+o*2,(w*h+7)/8);
 	return h;
 }
