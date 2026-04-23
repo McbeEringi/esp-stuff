@@ -337,7 +337,7 @@ void setup(){
 	SD.begin(SPICS);
 	pinMode(BTN,INPUT_PULLUP);
 	dispInit();
-	fontInit("/NotoSansCJKJP.font");
+	fontInit("/main.font");
 	for(uint8_t i=0;i<6;++i){
 		glyph_t *x=getFont(((uint16_t[]){0x5de5,0x5b66,0x7814,0x7a76,0x90e8,0xff01})[i]);
 		if(x){
