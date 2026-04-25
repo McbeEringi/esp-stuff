@@ -51,7 +51,7 @@ w=(await[
 		[0xeef9,0xeefc],// symbol
 	]),
 	...range([
-		[0x0020],[0x00a0],
+		[0x000a],[0x00a0],
 		[0x00c0,0x02af,{hankaku:true}],// latin-ext
 	])
 ].reduce(async(

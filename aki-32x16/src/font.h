@@ -41,13 +41,13 @@ void fontInit(const char* path){
 	}
 }
 uint32_t ftx(uint16_t cp){
-	uint16_t L=0,R=ftsize-1,m;
+	uint16_t L=1,R=ftsize,m;
 	while(1){
 		if(R<L)return 0;
 		m=L+(R-L)/2;
-		if(ft[m].i<cp)L=m+1;
-		else if(ft[m].i>cp)R=m-1;
-		else return ft[m].x;
+		if(ft[m-1].i<cp)L=m+1;
+		else if(ft[m-1].i>cp)R=m-1;
+		else return ft[m-1].x;
 	}
 }
 uint8_t drawFont(uint16_t cp,uint8_t o){
