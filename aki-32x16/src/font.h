@@ -78,8 +78,17 @@ uint8_t drawFont(uint16_t cp,uint8_t o){
 
 	bmprop_t p=bmprop(x);
 	font.seek(p.o);
-	font.read(buf+o*2,p.l);
+	font.read(buf+o*2,min(p.l,BUF_SIZE-o*2));
 	return p.h;
+}
+
+
+
+void showTxt(const char *path){
+	File txt=SD.open(path);
+	if(txt){
+		txt.close();
+	}
 }
 
 void scrollTxt(const char *path,uint8_t ms){
