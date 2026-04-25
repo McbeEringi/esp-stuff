@@ -46,35 +46,8 @@ void setup(){
 	fontInit("/main.font");
 	delay(1000);
 
-	File txt=SD.open("/main.txt");
-	if(txt)while(1){
-		uint32_t x;
-		auto read=[&txt]()->uint8_t{uint8_t x;txt.read(&x,1);return x;};
-		uint8_t _x=read();
-		if(!_x){txt.close();break;}
-		if(_x>>7==0)x=_x;
-		else if(_x>>5==0b00110)x=((_x&0x1f)<< 6)|((read()&0x3f)<< 0);
-		else if(_x>>4==0b01110)x=((_x&0x0f)<<12)|((read()&0x3f)<< 6)|((read()&0x3f)<<0);
-		else if(_x>>3==0b11110)x=((_x&0x07)<<18)|((read()&0x3f)<<12)|((read()&0x3f)<<6)|((read()&0x3f)<<0);
-		x=ftx(x);
-		if(x){
-			font.seek(x&0xffffff);
-			x=x>>24;
-			uint8_t
-				w=(x>>4)+1,
-				h=(x&15)+1,
-				l=(w*h+7)/8;
-			uint8_t *a=(uint8_t*)malloc(l);
-			font.read(a,l);
+	scrollTxt("/main.txt");
 
-			for(uint8_t i=0;i<h;++i){
-				scrollX();
-				memcpy(buf+BUF_SIZE-2,a+i*2,2);
-				delay(20);
-			}
-			free(a);
-		}
-	}
 	delay(1000);
 	golInit(true);
 }

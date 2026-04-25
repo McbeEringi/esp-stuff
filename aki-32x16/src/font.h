@@ -3,6 +3,13 @@ typedef struct{
 	uint32_t x;
 }u1632_t;
 
+typedef struct{
+	uint32_t o;
+	uint8_t w;
+	uint8_t h;
+	uint8_t l;
+}bmprop_t;
+
 File font;
 uint16_t ftsize;
 u1632_t *ft=NULL;
@@ -50,15 +57,59 @@ uint32_t ftx(uint16_t cp){
 		else return ft[m-1].x;
 	}
 }
+bmprop_t bmprop(uint32_t x){
+	uint8_t
+		s=x>>24,
+		w=(s>>4)+1,
+		h=(s&15)+1,
+		l=(w*h+7)/8;
+
+	return(bmprop_t){
+		.o=x&0xffffff,
+		.w=w,
+		.h=h,
+		.l=l
+	};
+}
+
 uint8_t drawFont(uint16_t cp,uint8_t o){
 	uint32_t x=ftx(cp);
 	if(!x)return 0;
-	font.seek(x&0xffffff);
-	x=x>>24;
-	uint8_t
-		w=(x>>4)+1,
-		h=(x&15)+1;
-	font.read(buf+o*2,(w*h+7)/8);
-	return h;
+
+	bmprop_t p=bmprop(x);
+	font.seek(p.o);
+	font.read(buf+o*2,p.l);
+	return p.h;
 }
 
+void scrollTxt(const char *path){
+	File txt=SD.open(path);
+	if(txt){
+		uint16_t n=txt.available();
+		auto read=[&txt,&n]()->uint8_t{uint8_t x;n-=txt.read(&x,1);return x;};
+		uint32_t x;
+		uint8_t _x;
+		while(n){
+			_x=read();
+			if(_x>>7==0)x=_x;
+			else if(_x>>5==0b00110)x=((_x&0x1f)<< 6)|((read()&0x3f)<< 0);
+			else if(_x>>4==0b01110)x=((_x&0x0f)<<12)|((read()&0x3f)<< 6)|((read()&0x3f)<<0);
+			else if(_x>>3==0b11110)x=((_x&0x07)<<18)|((read()&0x3f)<<12)|((read()&0x3f)<<6)|((read()&0x3f)<<0);
+			x=ftx(x);
+			if(x){
+				bmprop_t p=bmprop(x);
+				font.seek(p.o);
+				uint8_t *a=(uint8_t*)malloc(p.l);
+				font.read(a,p.l);
+
+				for(uint8_t i=0;i<p.h;++i){
+					scrollX();
+					memcpy(buf+BUF_SIZE-2,a+i*2,2);
+					delay(20);
+				}
+				free(a);
+			}
+		}
+	}
+	txt.close();
+}
