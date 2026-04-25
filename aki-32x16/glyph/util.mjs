@@ -19,8 +19,8 @@ reader=async src=>(
 		{d}
 	))(
 		(await src.slice(
-			3,
-			3+(await src.slice(0,3).bytes()).reduce((a,x,i)=>a|(x<<(8*i)),0)
+			7,
+			7+(await src.slice(4,7).bytes()).reduce((a,x,i)=>a|(x<<(8*i)),0)
 		).bytes()).reduce((a,x,i)=>([
 			_=>a.i=x,_=>a.i|=x<<8,
 			_=>a.o=x,_=>a.o|=x<<8,_=>a.o|=x<<16,

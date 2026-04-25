@@ -1,12 +1,13 @@
+#include <Arduino.h>
 #include <driver/ledc.h>
-#include "FS.h"
+#include <LittleFS.h>
+#define FSYS LittleFS
 #include "SD.h"
-#include "SPI.h"
 
 
 #define NUM_PANEL 3
 #define BUF_SIZE 192 // 16*32*NUM_PAMEL/8
-#define HASHL (NUM_PANEL*2)
+#define HASHL (NUM_PANEL*4)
 
 #define S0 4
 #define S1 0
@@ -29,7 +30,7 @@
 
 uint8_t hashi=0,rstcnt=0;
 uint32_t hash[HASHL]={};
-auto *txt=u8"Lorem ipsum であのイーハトーヴォの世界が広がります　　　　あのイーハトーヴォのすきとおった風、夏でも底に冷たさをもつ青いそら、うつくしい森で飾られたモリーオ市、郊外のぎらぎらひかる草の波。";
+// auto *txt=u8"Lorem ipsum であのイーハトーヴォの世界が広がります　　　　あのイーハトーヴォのすきとおった風、夏でも底に冷たさをもつ青いそら、うつくしい森で飾られたモリーオ市、郊外のぎらぎらひかる草の波。";
 
 #include "disp.h"
 #include "gol.h"
@@ -39,16 +40,21 @@ void setup(){
 	randomSeed(analogRead(0));
 	SPI.begin(SPICLK,SPIMISO,SPIMOSI,SPICS);
 	SD.begin(SPICS);
+	FSYS.begin();
 	pinMode(BTN,INPUT_PULLUP);
 	dispInit();
 	fontInit("/main.font");
 	delay(3000);
-	while(*txt){
+
+	File txt=SD.open("/main.txt");
+	while(txt.available()){
 		uint32_t x;
-		if(*txt>>7==0)x=*txt++;
-		else if(*txt>>5==0b00110)x=((*txt++&0x1f)<< 6)|((*txt++&0x3f)<< 0);
-		else if(*txt>>4==0b01110)x=((*txt++&0x0f)<<12)|((*txt++&0x3f)<< 6)|((*txt++&0x3f)<<0);
-		else if(*txt>>3==0b11110)x=((*txt++&0x07)<<18)|((*txt++&0x3f)<<12)|((*txt++&0x3f)<<6)|((*txt++&0x3f)<<0);
+		auto read=[&txt]()->uint8_t{uint8_t x;txt.read(&x,1);return x;};
+		uint8_t _x=read();
+		if(_x>>7==0)x=_x;
+		else if(_x>>5==0b00110)x=((_x&0x1f)<< 6)|((read()&0x3f)<< 0);
+		else if(_x>>4==0b01110)x=((_x&0x0f)<<12)|((read()&0x3f)<< 6)|((read()&0x3f)<<0);
+		else if(_x>>3==0b11110)x=((_x&0x07)<<18)|((read()&0x3f)<<12)|((read()&0x3f)<<6)|((read()&0x3f)<<0);
 		x=ftx(x);
 		if(x){
 			font.seek(x&0xffffff);
@@ -68,6 +74,33 @@ void setup(){
 			free(a);
 		}
 	}
+
+	// while(*txt){
+	// 	uint32_t x;
+	// 	if(*txt>>7==0)x=*txt++;
+	// 	else if(*txt>>5==0b00110)x=((*txt++&0x1f)<< 6)|((*txt++&0x3f)<< 0);
+	// 	else if(*txt>>4==0b01110)x=((*txt++&0x0f)<<12)|((*txt++&0x3f)<< 6)|((*txt++&0x3f)<<0);
+	// 	else if(*txt>>3==0b11110)x=((*txt++&0x07)<<18)|((*txt++&0x3f)<<12)|((*txt++&0x3f)<<6)|((*txt++&0x3f)<<0);
+	// 	x=ftx(x);
+	// 	if(x){
+	// 		font.seek(x&0xffffff);
+	// 		x=x>>24;
+	// 		uint8_t
+	// 			w=(x>>4)+1,
+	// 			h=(x&15)+1,
+	// 			l=(w*h+7)/8;
+	// 		uint8_t *a=(uint8_t*)malloc(l);
+	// 		font.read(a,l);
+	//
+	// 		for(uint8_t i=0;i<h;++i){
+	// 			scrollX();
+	// 			memcpy(buf+BUF_SIZE-2,a+i*2,2);
+	// 			delay(20);
+	// 		}
+	// 		free(a);
+	// 	}
+	// }
+
 	// for(uint8_t i=0,o=0;i<6;++i){
 	// 	o+=drawFont(((uint16_t[]){0x5de5,0x5b66,0x7814,0x7a76,0x90e8,0xff01})[i],o);
 	// }
