@@ -1,6 +1,10 @@
 typedef struct{
-	uint16_t i;
-	uint32_t x;
+	uint8_t x;
+	uint32_t y;
+}u0832_t;
+typedef struct{
+	uint16_t x;
+	uint32_t y;
 }u1632_t;
 
 typedef struct{
@@ -9,6 +13,7 @@ typedef struct{
 	uint8_t h;
 	uint8_t l;
 }bmprop_t;
+
 
 File font;
 uint16_t ftsize;
@@ -43,8 +48,8 @@ void fontInit(const char* path){
 	if(ft)free(ft);
 	ft=(u1632_t*)calloc(ftsize,sizeof(u1632_t));
 	for(uint16_t i=0;i<ftsize;++i){
-		font.read((uint8_t*)&ft[i].i,2);
-		font.read((uint8_t*)&ft[i].x,4);
+		font.read((uint8_t*)&ft[i].x,2);
+		font.read((uint8_t*)&ft[i].y,4);
 	}
 }
 uint32_t ftx(uint16_t cp){
@@ -52,9 +57,9 @@ uint32_t ftx(uint16_t cp){
 	while(1){
 		if(R<L)return 0;
 		m=L+(R-L)/2;
-		if(ft[m-1].i<cp)L=m+1;
-		else if(ft[m-1].i>cp)R=m-1;
-		else return ft[m-1].x;
+		if(ft[m-1].x<cp)L=m+1;
+		else if(ft[m-1].x>cp)R=m-1;
+		else return ft[m-1].y;
 	}
 }
 bmprop_t bmprop(uint32_t x){
@@ -66,27 +71,49 @@ bmprop_t bmprop(uint32_t x){
 
 	return(bmprop_t){
 		.o=x&0xffffff,
-		.w=w,
-		.h=h,
-		.l=l
+		.w=w,.h=h,.l=l
 	};
 }
 
-uint8_t drawFont(uint16_t cp,uint8_t o){
-	uint32_t x=ftx(cp);
-	if(!x)return 0;
+// uint8_t drawFont(uint16_t cp,uint8_t o){
+// 	uint32_t x=ftx(cp);
+// 	if(!x)return 0;
+//
+// 	bmprop_t p=bmprop(x);
+// 	font.seek(p.o);
+// 	font.read(buf+o*2,min(p.l,(uint8_t)(BUF_SIZE-o*2)));
+// 	return p.h;
+// }
 
-	bmprop_t p=bmprop(x);
-	font.seek(p.o);
-	font.read(buf+o*2,min(p.l,BUF_SIZE-o*2));
-	return p.h;
+u0832_t unicode(File txt){
+	uint8_t n=0,_x;
+	uint32_t x;
+	auto read=[&txt,&n]()->uint8_t{uint8_t x;n+=txt.read(&x,1);return x;};
+	_x=read();
+	if(_x>>7==0)x=_x;
+	else if(_x>>5==0b00110)x=((_x&0x1f)<< 6)|((read()&0x3f)<< 0);
+	else if(_x>>4==0b01110)x=((_x&0x0f)<<12)|((read()&0x3f)<< 6)|((read()&0x3f)<<0);
+	else if(_x>>3==0b11110)x=((_x&0x07)<<18)|((read()&0x3f)<<12)|((read()&0x3f)<<6)|((read()&0x3f)<<0);
+
+	return(u0832_t){.x=n,.y=x};
 }
-
-
 
 void showTxt(const char *path){
 	File txt=SD.open(path);
 	if(txt){
+		uint16_t n=txt.available();
+		uint8_t c=0;
+		while(n&&c<BUF_SIZE){
+			u0832_t x=unicode(txt);
+			n-=x.x;
+			x.y=ftx(x.y);
+			if(x.y){
+				bmprop_t p=bmprop(x.y);
+				font.seek(p.o);
+				font.read(buf+c,min(p.l,(uint8_t)(BUF_SIZE-c)));
+				c+=p.l;
+			}
+		}
 		txt.close();
 	}
 }
@@ -95,18 +122,12 @@ void scrollTxt(const char *path,uint8_t ms){
 	File txt=SD.open(path);
 	if(txt){
 		uint16_t n=txt.available();
-		auto read=[&txt,&n]()->uint8_t{uint8_t x;n-=txt.read(&x,1);return x;};
-		uint32_t x;
-		uint8_t _x;
 		while(n){
-			_x=read();
-			if(_x>>7==0)x=_x;
-			else if(_x>>5==0b00110)x=((_x&0x1f)<< 6)|((read()&0x3f)<< 0);
-			else if(_x>>4==0b01110)x=((_x&0x0f)<<12)|((read()&0x3f)<< 6)|((read()&0x3f)<<0);
-			else if(_x>>3==0b11110)x=((_x&0x07)<<18)|((read()&0x3f)<<12)|((read()&0x3f)<<6)|((read()&0x3f)<<0);
-			x=ftx(x);
-			if(x){
-				bmprop_t p=bmprop(x);
+			u0832_t x=unicode(txt);
+			n-=x.x;
+			x.y=ftx(x.y);
+			if(x.y){
+				bmprop_t p=bmprop(x.y);
 				font.seek(p.o);
 				uint8_t *a=(uint8_t*)malloc(p.l);
 				font.read(a,p.l);
