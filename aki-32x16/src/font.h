@@ -82,7 +82,7 @@ uint8_t drawFont(uint16_t cp,uint8_t o){
 	return p.h;
 }
 
-void scrollTxt(const char *path){
+void scrollTxt(const char *path,uint8_t ms){
 	File txt=SD.open(path);
 	if(txt){
 		uint16_t n=txt.available();
@@ -105,7 +105,7 @@ void scrollTxt(const char *path){
 				for(uint8_t i=0;i<p.h;++i){
 					scrollX();
 					memcpy(buf+BUF_SIZE-2,a+i*2,2);
-					delay(20);
+					delay(ms);
 				}
 				free(a);
 			}

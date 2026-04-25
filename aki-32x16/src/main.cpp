@@ -46,13 +46,13 @@ void setup(){
 	fontInit("/main.font");
 	delay(1000);
 
-	scrollTxt("/main.txt");
+	scrollTxt("/main.txt",20);
 
 	delay(1000);
 	golInit(true);
 }
 void loop(){
-	if(digitalRead(BTN)==LOW)++rstcnt;
+	if(digitalRead(BTN)==LOW)ESP.restart();//++rstcnt;
 	uint32_t _hash=gol();
 
 	if(rstcnt){
