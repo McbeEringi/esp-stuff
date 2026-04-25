@@ -46,7 +46,7 @@ void setup(){
 	fontInit("/main.font");
 	delay(1000);
 
-	showTxt("/main.txt");
+	showTxt("/init.txt");
 	delay(1000);
 	scrollTxt("/main.txt",20);
 
