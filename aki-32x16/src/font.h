@@ -123,6 +123,7 @@ void scrollTxt(const char *path,uint8_t ms){
 	if(txt){
 		uint16_t n=txt.available();
 		while(n){
+			if(digitalRead(BTN)==LOW)break;
 			u0832_t x=unicode(txt);
 			n-=x.x;
 			x.y=ftx(x.y);

@@ -36,6 +36,8 @@ uint32_t hash[HASHL]={};
 #include "gol.h"
 #include "font.h"
 
+uint8_t mode=0;
+
 void setup(){
 	randomSeed(analogRead(0));
 	SPI.begin(SPICLK,SPIMISO,SPIMOSI,SPICS);
@@ -45,28 +47,37 @@ void setup(){
 	dispInit();
 	fontInit("/main.font");
 	delay(1000);
-
-	showTxt("/init.txt");
-	delay(1000);
-	scrollTxt("/main.txt",20);
-
-	delay(1000);
-	golInit(true);
 }
 void loop(){
-	if(digitalRead(BTN)==LOW)ESP.restart();//++rstcnt;
-	uint32_t _hash=gol();
-
-	if(rstcnt){
-		dispBri(0x20);
-		if(40<++rstcnt)golInit();
-	}else{
-		for(uint8_t i=0;i<HASHL;++i){
-			if(hash[i]==_hash)++rstcnt;
+	switch(mode){
+		case 0:{
+			dispBri(0x80);
+			while(1){
+				if(digitalRead(BTN)==LOW)break;
+				scrollTxt("/main.txt",20);
+			}
+			break;
 		}
-		if(hashi%16==0)hash[hashi/16]=_hash;
-		hashi=(hashi+1)%HASHL;
+		case 1:{
+			golInit(true);
+			while(1){
+				if(digitalRead(BTN)==LOW)break;
+				uint32_t _hash=gol();
+				if(rstcnt){
+					dispBri(0x20);
+					if(40<++rstcnt)golInit();
+				}else{
+					for(uint8_t i=0;i<HASHL;++i){
+						if(hash[i]==_hash)++rstcnt;
+					}
+					if(hashi%16==0)hash[hashi/16]=_hash;
+					hashi=(hashi+1)%HASHL;
+				}
+				delay(50);
+			}
+			break;
+		}
 	}
-
-	delay(50);
+	while(digitalRead(BTN)==LOW)delay(50);
+	mode=!mode;
 }
