@@ -52,6 +52,8 @@ w=(await[
 	]),
 	...range([
 		[0x000a],[0x00a0],
+		[0x32ff],// reiwa ligature
+		[0x00a5],[0xffe5],// yen mark
 		[0x00c0,0x02af,{hankaku:true}],// latin-ext
 	])
 ].reduce(async(
