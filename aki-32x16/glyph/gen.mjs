@@ -55,7 +55,9 @@ w=(await[
 		[0x32ff],// reiwa ligature
 		[0x00a5,,{hankaku:true,decender:true}],[0xffe5],// yen mark
 		[0x00c0,0x02af,{hankaku:true}],// latin-ext
-	])
+	]),
+	// [...'丼傲刹哺喩嗅嘲毀彙恣惧慄憬拉摯曖楷鬱璧瘍箋籠緻羞訃諧貪踪辣錮'],// 第二水準 常用
+	// [...'塡剝𠮟頰']// 第三水準 常用
 ].reduce(async(
 	a,
 	w,
