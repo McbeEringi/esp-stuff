@@ -112,21 +112,12 @@ w=(await[
 	),0),
 	a
 ),[],console.log('gen: render...\n'))).sort(),
-f=await(async s=>(
-	await Bun.write(dst,''),
-	s=(await open(dst,{flags:'a'})).createWriteStream(),
-	{
-		write:x=>new Promise(f=>s.write(x,f)),
-		end:_=>new Promise(f=>s.end(f))
-	}
-))(),
+f=Bun.file(dst).writer(),
 le24=x=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(x>>>16)&255]),
 le16248=(x,y,z)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y>>>16)&255,z&255]);
 
 
 // console.log(w);
-
-await f.write(new Uint32Array([0]));
 
 console.log('gen: index size...');
 await f.write(le24((2+3+1)*w.length));
@@ -136,7 +127,7 @@ await w.reduce(async(a,x)=>(
 	a=await a,
 	await f.write(le16248(x.cp,a,x.size)),
 	a+x.file.size,
-),4+3+(2+3+1)*w.length);
+),3+(2+3+1)*w.length);
 
 console.log('gen: data...\n');
 await w.reduce(async(a,x)=>(
@@ -144,16 +135,18 @@ await w.reduce(async(a,x)=>(
 	console.log(`\x1b[1A${x.name}`),
 	await f.write(await x.file.bytes())
 ),0);
-await f.end();
 
+// TODO: ハッシュを同時に
 console.log('gen: hash...');
 await(async a=>(
 	await(await Bun.file(dst).slice(4).stream()).pipeTo(new WritableStream({
 		write:x=>a=x.reduce((a,x)=>((a<<5)|(a>>>27))^x,a),
 	})),
 	console.log((a>>>0).toString(16).padStart(8,0)),
-	await(await open(dst,{flags:'r+'})).write(new Uint32Array([a]))
+	await f.write(new Uint32Array([a]))
 ))(0);
+
+await f.end();
 
 await Bun.$`rm -rf ${dst}.part`;
 console.log('gen: done!');

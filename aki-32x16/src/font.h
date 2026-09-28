@@ -24,10 +24,10 @@ void fontInit(const char* path){
 		File s=SD.open(path);
 		if(s)do{
 			File d=FSYS.open(path);
-			if(d){
+			if(d){// TODO: ハッシュは最後に
 				uint32_t shash,dhash;
-				s.read((uint8_t*)&shash,4);s.seek(0);
-				d.read((uint8_t*)&dhash,4);d.close();
+				s.read((uint8_t*)&shash,s.size()-4);s.seek(0);
+				d.read((uint8_t*)&dhash,d.size()-4);d.close();
 				if(shash==dhash)break;
 			}
 
@@ -42,7 +42,6 @@ void fontInit(const char* path){
 	font=FSYS.open(path);
 	if(!font)return;
 	uint32_t size=0;
-	font.seek(4);
 	font.read((uint8_t*)&size,3);
 	ftsize=size/6;
 	if(ft)free(ft);
