@@ -26,8 +26,8 @@ void fontInit(const char* path){
 			File d=FSYS.open(path);
 			if(d){// TODO: ハッシュは最後に
 				uint32_t shash,dhash;
-				s.read((uint8_t*)&shash,s.size()-4);s.seek(0);
-				d.read((uint8_t*)&dhash,d.size()-4);d.close();
+				s.seek(s.size()-4);s.read((uint8_t*)&shash,4);s.seek(0);
+				d.seek(d.size()-4);d.read((uint8_t*)&dhash,4);d.close();
 				if(shash==dhash)break;
 			}
 
