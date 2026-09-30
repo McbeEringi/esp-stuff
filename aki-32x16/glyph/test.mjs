@@ -4,7 +4,7 @@ import{family,reader}from'./util.mjs';
 
 const
 ffam=await family(Bun.argv[2]),
-dst=`${ffam.ns}.test.png`,
+dst=`${ffam.inp}.test.png`,
 get=await reader(ffam);
 
 let w=process.stdin.isTTY?

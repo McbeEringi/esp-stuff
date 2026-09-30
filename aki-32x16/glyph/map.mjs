@@ -4,7 +4,7 @@ import{size,family,reader}from'./util.mjs';
 
 const
 ffam=await family(Bun.argv[2]),
-dst=`${ffam.ns}.map.png`,
+dst=`${ffam.inp}.map.png`,
 get=await reader(ffam),
 
 c=createCanvas(256*size,256*size),

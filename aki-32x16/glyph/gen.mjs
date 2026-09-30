@@ -5,7 +5,7 @@ import{size,family}from'./util.mjs';
 
 const
 ffam=await family(Bun.argv[2]),
-dst=`${ffam.ns}.font`,
+dst=`${ffam.inp}.font`,
 range_sjis=w=>(tds=>w.map(([s,e=s,o={}])=>Object.assign(
 	[...Array(e-s+1)[Symbol.iterator]().map(
 		(_,i)=>s+i
@@ -65,7 +65,7 @@ w=(await[
 		c=createCanvas(size,size*(w.hankaku?.5:1)),
 		ctx=(ctx=>(
 			ctx.textBaseline='top',
-			ctx.font=`${size}px ${ffam.raw}`,
+			ctx.font=`${size}px ${ffam}`,
 				ctx.rotate(Math.PI/2),
 			(({
 				actualBoundingBoxDescent:d,
@@ -73,7 +73,7 @@ w=(await[
 				// fontBoundingBoxDescent:d,
 				// fontBoundingBoxAscent:a
 			})=>(
-				ctx.font=`${size/(d-a)*size}px ${ffam.raw}`
+				ctx.font=`${size/(d-a)*size}px ${ffam}`
 			))(ctx.measureText(w.join(''))),
 			ctx
 		))(c.getContext('2d'))

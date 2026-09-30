@@ -1,12 +1,16 @@
 const
 size=16,// max 16
-family=async w=>(x=>(console.log(`using "${x}"`),{raw:x,ns:x.replace(/\s/g,'')}))(
-	(await Bun.$`fc-match -f"%{family}" ${w}`.text()).split(',').filter(x=>!x.match(/[^\w\s]/)).sort((a,b)=>b.length-a.length).pop()
+family=async w=>(x=>(
+	x=Object.assign(x,{inp:w||'system-default'}),
+	console.log(`font: ${x.inp} => ${x.slice(0,3)}...`),
+	x
+))(
+	(await Bun.$`fc-match -f"%{family}," -s ${w}`.text()).split(',')//.slice(0,4)
 ),
 reader=async src=>(
 	src=await(async f=>await f.exists()?f:(
-		await Bun.$`./gen.mjs '${src.raw}'`,Bun.file(f.name)
-	))(Bun.file(`${src.ns}.font`)),
+		await Bun.$`./gen.mjs '${src.inp}'`,Bun.file(f.name)
+	))(Bun.file(`${src.inp}.font`)),
 	(d=>Object.assign(
 		async(x,{
 			w,h
