@@ -82,37 +82,43 @@ w=(await[
 	a=await a,
 	await w.reduce(async(b,x)=>(
 		await b,
-		x=new String(x),
-		x.cp=x.codePointAt(),
-		x.name=x.cp.toString(16).padStart(4,0),
-		x.file=Bun.file(`${dst}.part/${x.name}`),
-		x.size=((c.width-1)<<4)|((c.height-1)&15),
-		await x.file.exists()||(
+		x in a.d||(
+			x=new String(x),
+			x.cp=x.codePointAt(),
+			x.name=x.cp.toString(16).padStart(4,0),
+			x.size=((c.width-1)<<4)|((c.height-1)&15),
 			console.log(`\x1b[1A${x.name}`),
-			a.push(x),
 			ctx.fillStyle='#000',
 			ctx.fillRect(0,-size,c.height,c.width),
 			ctx.fillStyle='#fff',
 			ctx.fillText(x,0,-size,c.height),
 
-			await Bun.write(
-				x.file,
-				new Uint8Array([
-					...ctx.getImageData(0,0,c.width,c.height).data[Symbol.iterator]()
-						.filter((_,i)=>!(i%4))
-						.reduce((a,x,i)=>(
-							x=127<x,
-							i%8?(a[a.length-1]|=x<<(7-i%8)):a.push(x<<7),
-							a
-						),[])
-				])
-			),
-			x.file=Bun.file(x.file.name)
+			x.bin=new Uint8Array([
+				...ctx.getImageData(0,0,c.width,c.height).data[Symbol.iterator]()
+					.filter((_,i)=>!(i%4))
+					.reduce((a,x,i)=>(
+						x=127<x,
+						i%8?(a[a.length-1]|=x<<(7-i%8)):a.push(x<<7),
+						a
+					),[])
+			]),
+			a.a.push(x),
+			a.d[x]=1
 		)
 	),0),
 	a
-),[],console.log('gen: render...\n'))).sort(),
-f=Bun.file(dst).writer(),
+),{a:[],d:{}},console.log('gen: render...\n'))).a.sort(),
+f=((f,a=0)=>({
+	write:async x=>(
+		await f.write(x),
+		a=x.reduce((a,x)=>((a<<5)|(a>>>27))^x,a)
+	),
+	end:async _=>(
+		console.log((a>>>0).toString(16).padStart(8,0)),
+		await f.write(new Uint32Array([a])),
+		await f.end()
+	)
+}))(Bun.file(dst).writer()),
 le24=x=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(x>>>16)&255]),
 le16248=(x,y,z)=>new Uint8Array([(x>>>0)&255,(x>>>8)&255,(y>>>0)&255,(y>>>8)&255,(y>>>16)&255,z&255]);
 
@@ -126,29 +132,16 @@ console.log('gen: index...');
 await w.reduce(async(a,x)=>(
 	a=await a,
 	await f.write(le16248(x.cp,a,x.size)),
-	a+x.file.size,
+	a+x.bin.byteLength,
 ),3+(2+3+1)*w.length);
 
-console.log('gen: data...\n');
+console.log('gen: data...');
 await w.reduce(async(a,x)=>(
 	await a,
-	console.log(`\x1b[1A${x.name}`),
-	await f.write(await x.file.bytes())
+	await f.write(x.bin)
 ),0);
 
-// TODO: ハッシュを同時に
 console.log('gen: hash...');
-await(async a=>(
-	await(await Bun.file(dst).slice(4).stream()).pipeTo(new WritableStream({
-		write:x=>a=x.reduce((a,x)=>((a<<5)|(a>>>27))^x,a),
-	})),
-	console.log((a>>>0).toString(16).padStart(8,0)),
-	await f.write(new Uint32Array([a]))
-))(0);
-
 await f.end();
 
-await Bun.$`rm -rf ${dst}.part`;
 console.log('gen: done!');
-
-
